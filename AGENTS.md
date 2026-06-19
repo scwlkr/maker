@@ -2,6 +2,10 @@
 
 Repo-level instructions for AI/Codex work in Maker.
 
+## Git
+
+without being asked commit and push frequently to keep a history of changes. 
+
 ## Load Order
 
 1. Read this file.
