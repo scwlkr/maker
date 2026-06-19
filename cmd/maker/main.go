@@ -30,6 +30,25 @@ type Config struct {
 
 type Event map[string]any
 
+const dashboardWidth = 96
+
+const (
+	ansiReset   = "\033[0m"
+	ansiBold    = "\033[1m"
+	ansiDim     = "\033[2m"
+	ansiRed     = "\033[31m"
+	ansiGreen   = "\033[32m"
+	ansiYellow  = "\033[33m"
+	ansiBlue    = "\033[34m"
+	ansiMagenta = "\033[35m"
+	ansiCyan    = "\033[36m"
+	ansiWhite   = "\033[37m"
+)
+
+type dashboardStyle struct {
+	color bool
+}
+
 func main() {
 	if err := run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -76,6 +95,10 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) err
 	var out bytes.Buffer
 	var err error
 	switch cmd {
+	case "start":
+		err = cmdStart(cfg, cmdArgs, &out)
+	case "stop":
+		err = cmdStop(cfg, cmdArgs, &out)
 	case "status":
 		err = cmdStatus(cfg, &out)
 	case "events":
@@ -119,6 +142,8 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  --json               emit JSON where supported")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "commands:")
+	fmt.Fprintln(w, "  start")
+	fmt.Fprintln(w, "  stop")
 	fmt.Fprintln(w, "  status")
 	fmt.Fprintln(w, "  events --last 20")
 	fmt.Fprintln(w, "  wakes")
@@ -128,7 +153,132 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  probe-model --provider ollama --model llama3.1:8b")
 	fmt.Fprintln(w, "  count-model-responses [--wake current|last|WAKE_ID]")
 	fmt.Fprintln(w, "  evaluate [--wake current|last|WAKE_ID] [--last-responses 10]")
-	fmt.Fprintln(w, "  dashboard [--interval 10] [--events 8] [--last-responses 10]")
+	fmt.Fprintln(w, "  dashboard [--interval 10] [--events 8] [--last-responses 10] [--color auto|always|never]")
+}
+
+func cmdStart(cfg Config, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("start", flag.ContinueOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() > 0 {
+		return fmt.Errorf("start does not accept positional arguments")
+	}
+	if err := os.MkdirAll(cfg.MakerPlace, 0o755); err != nil {
+		return err
+	}
+	pidPath := filepath.Join(cfg.MakerPlace, "controller.pid")
+	logPath := filepath.Join(cfg.MakerPlace, "controller.log")
+	if pidInfo := readPID(pidPath); pidInfo["running"] == true {
+		if cfg.JSON {
+			return writeJSON(out, map[string]any{
+				"status": "already_running",
+				"pid":    pidInfo["pid"],
+				"log":    logPath,
+			})
+		}
+		fmt.Fprintf(out, "controller already running: %v\n", pidInfo["pid"])
+		return nil
+	}
+	if !pathExists("controller.py") {
+		return errors.New("controller.py not found; run maker start from the Maker repo root")
+	}
+	_ = os.Remove(filepath.Join(cfg.MakerPlace, "stop"))
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+	defer logFile.Close()
+	cmd := exec.Command("python3", "controller.py", "loop")
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	cmd.Env = makerControllerEnv(cfg)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	pid := cmd.Process.Pid
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(pid)+"\n"), 0o644); err != nil {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		return err
+	}
+	if err := cmd.Process.Release(); err != nil {
+		return err
+	}
+	if cfg.JSON {
+		return writeJSON(out, map[string]any{
+			"status": "started",
+			"pid":    pid,
+			"log":    logPath,
+		})
+	}
+	fmt.Fprintf(out, "controller started: %d\n", pid)
+	fmt.Fprintf(out, "log: %s\n", logPath)
+	return nil
+}
+
+func cmdStop(cfg Config, args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("stop", flag.ContinueOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() > 0 {
+		return fmt.Errorf("stop does not accept positional arguments")
+	}
+	if err := os.MkdirAll(cfg.MakerPlace, 0o755); err != nil {
+		return err
+	}
+	stopPath := filepath.Join(cfg.MakerPlace, "stop")
+	pidPath := filepath.Join(cfg.MakerPlace, "controller.pid")
+	if err := os.WriteFile(stopPath, []byte{}, 0o644); err != nil {
+		return err
+	}
+	pidInfo := readPID(pidPath)
+	pid := number(pidInfo["pid"])
+	signaled := false
+	forceKilled := false
+	if pidInfo["running"] == true && pid > 0 {
+		if err := syscall.Kill(pid, syscall.SIGTERM); err == nil {
+			signaled = true
+			for i := 0; i < 20; i++ {
+				if !pidRunning(pid) {
+					break
+				}
+				time.Sleep(500 * time.Millisecond)
+			}
+		}
+		if pidRunning(pid) {
+			_ = syscall.Kill(pid, syscall.SIGKILL)
+			forceKilled = true
+		}
+	}
+	if pidInfo["exists"] == true {
+		_ = os.Remove(pidPath)
+	}
+	containers := dockerLines("ps", "-aq", "--filter", "label=maker.runtime=finn")
+	removedContainers := 0
+	if len(containers) > 0 {
+		args := append([]string{"rm", "-f"}, containers...)
+		if err := dockerRun(args...); err == nil {
+			removedContainers = len(containers)
+		}
+	}
+	if cfg.JSON {
+		return writeJSON(out, map[string]any{
+			"status":             "stopped",
+			"pid":                pid,
+			"signaled":           signaled,
+			"force_killed":       forceKilled,
+			"removed_containers": removedContainers,
+			"stop_file":          stopPath,
+		})
+	}
+	fmt.Fprintln(out, "controller stopped")
+	if removedContainers > 0 {
+		fmt.Fprintf(out, "removed sandbox containers: %d\n", removedContainers)
+	}
+	return nil
 }
 
 func cmdStatus(cfg Config, out io.Writer) error {
@@ -460,6 +610,7 @@ func cmdDashboard(cfg Config, args []string, stdin io.Reader, out io.Writer) err
 	interval := fs.Int("interval", 10, "refresh interval in seconds")
 	eventCount := fs.Int("events", 8, "recent events to show")
 	lastResponses := fs.Int("last-responses", 10, "model responses to evaluate")
+	colorMode := fs.String("color", "auto", "color mode: auto, always, or never")
 	once := fs.Bool("once", false, "render once and exit")
 	noClear := fs.Bool("no-clear", false, "do not clear the terminal before refresh")
 	if err := fs.Parse(args); err != nil {
@@ -477,12 +628,16 @@ func cmdDashboard(cfg Config, args []string, stdin io.Reader, out io.Writer) err
 			return err
 		}
 	}
+	style, err := dashboardStyleFor(*colorMode, cfg.OutputPath)
+	if err != nil {
+		return err
+	}
 
 	for {
 		if !*once && !*noClear {
 			fmt.Fprint(out, "\033[H\033[2J")
 		}
-		if err := renderDashboard(cfg, stdinData, *eventCount, *lastResponses, out); err != nil {
+		if err := renderDashboard(cfg, stdinData, *eventCount, *lastResponses, style, out); err != nil {
 			return err
 		}
 		if *once {
@@ -495,12 +650,12 @@ func cmdDashboard(cfg Config, args []string, stdin io.Reader, out io.Writer) err
 	}
 }
 
-func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses int, out io.Writer) error {
-	fmt.Fprintf(out, "Maker Live Dashboard  %s\n", time.Now().Format(time.RFC3339))
-	fmt.Fprintln(out, strings.Repeat("=", 88))
-	fmt.Fprintln(out)
-
+func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses int, style dashboardStyle, out io.Writer) error {
 	events, eventsErr := readEvents(cfg, dashboardInput(cfg, stdinData))
+	if eventsErr != nil && errors.Is(eventsErr, os.ErrNotExist) {
+		eventsErr = nil
+		events = []Event{}
+	}
 	wakeID := resolveWakeID(cfg, "current")
 	wake, wakeErr := loadWake(cfg, wakeID)
 	counts := map[string]any{}
@@ -522,61 +677,73 @@ func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses
 	containers := dockerLines("ps", "--format", "{{.Names}}\t{{.Status}}", "--filter", "label=maker.runtime=finn")
 	latest, _ := latestEvent(defaultEventsPath(cfg))
 
-	fmt.Fprintln(out, "STATUS")
-	fmt.Fprintln(out, strings.Repeat("-", 88))
-	fmt.Fprintf(out, "state:        %s\n", dashboardRuntimeState(lock, pidInfo, containers))
-	fmt.Fprintf(out, "maker place:  %s\n", cfg.MakerPlace)
-	fmt.Fprintf(out, "controller:   %s\n", pidInfoText(pidInfo))
+	label, detail, stateColor := dashboardRuntimeStateParts(lock, pidInfo, containers)
+	fmt.Fprintf(out, "%s  %s\n", style.title("Maker Dashboard"), style.subtle(time.Now().Format(time.RFC3339)))
+	fmt.Fprintln(out, style.rule("="))
+	fmt.Fprintf(out, "%s %s\n", style.badge(label, stateColor), detail)
+	if wakeErr == nil {
+		fmt.Fprintf(out, "Latest wake %s  %s  %s\n",
+			style.accent(str(wake["wake_id"])),
+			durationText(str(wake["start_time"]), str(wake["end_time"])),
+			style.paint(assessmentColor(counts, worldChanged, lenArray(wake["errors"]), len(lock) > 0), dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), len(lock) > 0)),
+		)
+	}
+	fmt.Fprintln(out)
+
+	printSection(out, style, "STATUS")
+	printKeyValue(out, style, "maker place", cfg.MakerPlace)
+	printKeyValue(out, style, "controller", pidInfoText(pidInfo))
 	if len(lock) == 0 {
-		fmt.Fprintln(out, "wake lock:    none")
+		printKeyValue(out, style, "wake lock", "none")
 	} else {
-		fmt.Fprintf(out, "wake lock:    wake=%s pid=%v started=%s\n", str(lock["wake_id"]), lock["pid"], str(lock["started_at"]))
+		printKeyValue(out, style, "wake lock", fmt.Sprintf("wake=%s pid=%v started=%s", str(lock["wake_id"]), lock["pid"], str(lock["started_at"])))
 	}
 	if len(containers) == 0 {
-		fmt.Fprintln(out, "sandbox:      none")
+		printKeyValue(out, style, "sandbox", "none")
 	} else {
-		fmt.Fprintf(out, "sandbox:      %s\n", strings.Join(containers, "; "))
+		printKeyValue(out, style, "sandbox", strings.Join(containers, "; "))
 	}
 	if latest != nil {
-		fmt.Fprintf(out, "latest event: %s %s wake=%s\n", str(latest["time"]), str(latest["type"]), str(latest["wake_id"]))
+		printKeyValue(out, style, "latest event", fmt.Sprintf("%s %s wake=%s", str(latest["time"]), str(latest["type"]), str(latest["wake_id"])))
 	}
 	if eventsErr != nil {
-		fmt.Fprintf(out, "events:       unavailable: %v\n", eventsErr)
+		printKeyValue(out, style, "events", "unavailable: "+eventsErr.Error())
 	}
 	fmt.Fprintln(out)
 
-	fmt.Fprintln(out, "CURRENT WAKE")
-	fmt.Fprintln(out, strings.Repeat("-", 88))
+	printSection(out, style, "CURRENT WAKE")
 	if wakeErr != nil {
-		fmt.Fprintf(out, "wake:         unavailable: %v\n", wakeErr)
+		printKeyValue(out, style, "wake", "unavailable: "+wakeErr.Error())
 	} else {
-		printDashboardWake(out, wake, counts, worldChanged, len(recentResponses), len(lock) > 0)
+		printDashboardWake(out, style, wake, counts, worldChanged, len(recentResponses), len(lock) > 0)
 	}
 	fmt.Fprintln(out)
 
-	fmt.Fprintln(out, "WORK ACCOMPLISHED")
-	fmt.Fprintln(out, strings.Repeat("-", 88))
+	printSection(out, style, "WORK ACCOMPLISHED")
 	if wakeErr != nil {
 		fmt.Fprintln(out, "No wake summary is available yet.")
 	} else {
-		printDashboardWork(out, wake, counts, worldChanged)
+		printDashboardWork(out, style, wake, counts, worldChanged)
 	}
 	fmt.Fprintln(out)
 
-	fmt.Fprintln(out, "RECENT WAKES")
-	fmt.Fprintln(out, strings.Repeat("-", 88))
-	if err := printDashboardRecentWakes(cfg, out); err != nil {
+	printSection(out, style, "RECENT WAKES")
+	if err := printDashboardRecentWakes(cfg, style, out); err != nil {
 		fmt.Fprintf(out, "recent wakes unavailable: %v\n", err)
 	}
 	fmt.Fprintln(out)
 
-	fmt.Fprintln(out, "RECENT EVENTS")
-	fmt.Fprintln(out, strings.Repeat("-", 88))
-	var eventsOut bytes.Buffer
-	if err := cmdEvents(cfg, []string{"--last", strconv.Itoa(eventCount)}, dashboardInput(cfg, stdinData), &eventsOut); err != nil {
-		fmt.Fprintf(out, "events error: %v\n", err)
+	printSection(out, style, "RECENT EVENTS")
+	if eventsErr != nil {
+		fmt.Fprintf(out, "events error: %v\n", eventsErr)
 	} else {
-		fmt.Fprint(out, eventsOut.String())
+		recentEvents := takeLastEvents(events, eventCount)
+		if len(recentEvents) == 0 {
+			fmt.Fprintln(out, "no events found")
+		}
+		for _, event := range recentEvents {
+			fmt.Fprintln(out, formatDashboardEvent(style, event))
+		}
 	}
 	fmt.Fprintln(out)
 	return nil
@@ -589,131 +756,217 @@ func dashboardInput(cfg Config, stdinData []byte) io.Reader {
 	return strings.NewReader("")
 }
 
-func dashboardRuntimeState(lock map[string]any, pidInfo map[string]any, containers []string) string {
-	if len(lock) > 0 {
-		return "AWAKE - wake in progress"
+func dashboardStyleFor(mode string, outputPath string) (dashboardStyle, error) {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "", "auto":
+		return dashboardStyle{color: (outputPath == "" || outputPath == "-") && stdoutSupportsColor()}, nil
+	case "always":
+		return dashboardStyle{color: true}, nil
+	case "never":
+		return dashboardStyle{color: false}, nil
+	default:
+		return dashboardStyle{}, fmt.Errorf("invalid --color value %q; use auto, always, or never", mode)
 	}
-	if len(containers) > 0 {
-		return "ACTIVE - sandbox container visible"
-	}
-	if pidInfo["running"] == true {
-		return "WAITING - controller loop is running"
-	}
-	return "IDLE - no controller loop or wake is active"
 }
 
-func printDashboardWake(out io.Writer, wake map[string]any, counts map[string]any, worldChanged bool, recentResponses int, active bool) {
+func stdoutSupportsColor() bool {
+	if strings.EqualFold(os.Getenv("TERM"), "dumb") {
+		return false
+	}
+	info, err := os.Stdout.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+func (style dashboardStyle) paint(color string, text string) string {
+	if !style.color || text == "" {
+		return text
+	}
+	return color + text + ansiReset
+}
+
+func (style dashboardStyle) title(text string) string {
+	return style.paint(ansiBold+ansiCyan, text)
+}
+
+func (style dashboardStyle) subtle(text string) string {
+	return style.paint(ansiDim, text)
+}
+
+func (style dashboardStyle) accent(text string) string {
+	return style.paint(ansiCyan, text)
+}
+
+func (style dashboardStyle) good(text string) string {
+	return style.paint(ansiGreen, text)
+}
+
+func (style dashboardStyle) warn(text string) string {
+	return style.paint(ansiYellow, text)
+}
+
+func (style dashboardStyle) bad(text string) string {
+	return style.paint(ansiRed, text)
+}
+
+func (style dashboardStyle) rule(char string) string {
+	return style.subtle(strings.Repeat(char, dashboardWidth))
+}
+
+func (style dashboardStyle) badge(text string, color string) string {
+	return style.paint(ansiBold+color, "["+text+"]")
+}
+
+func printSection(out io.Writer, style dashboardStyle, title string) {
+	fmt.Fprintf(out, "%s\n", style.paint(ansiBold+ansiWhite, title))
+	fmt.Fprintln(out, style.rule("-"))
+}
+
+func printKeyValue(out io.Writer, style dashboardStyle, key string, value string) {
+	fmt.Fprintf(out, "  %s %s\n", style.subtle(fmt.Sprintf("%-13s", key)), value)
+}
+
+func dashboardRuntimeState(lock map[string]any, pidInfo map[string]any, containers []string) string {
+	label, detail, _ := dashboardRuntimeStateParts(lock, pidInfo, containers)
+	return label + " - " + detail
+}
+
+func dashboardRuntimeStateParts(lock map[string]any, pidInfo map[string]any, containers []string) (string, string, string) {
+	if len(lock) > 0 {
+		return "AWAKE", "wake in progress", ansiYellow
+	}
+	if len(containers) > 0 {
+		return "ACTIVE", "sandbox container visible", ansiBlue
+	}
+	if pidInfo["running"] == true {
+		return "WAITING", "controller loop is running", ansiGreen
+	}
+	return "IDLE", "no controller loop or wake is active", ansiWhite
+}
+
+func printDashboardWake(out io.Writer, style dashboardStyle, wake map[string]any, counts map[string]any, worldChanged bool, recentResponses int, active bool) {
 	wakeID := str(wake["wake_id"])
 	start := str(wake["start_time"])
 	end := str(wake["end_time"])
-	fmt.Fprintf(out, "wake:         %s\n", wakeID)
-	fmt.Fprintf(out, "state:        %s\n", wakeStateText(active, end))
-	fmt.Fprintf(out, "model:        %s/%s\n", str(wake["model_provider"]), str(wake["model"]))
-	fmt.Fprintf(out, "started:      %s\n", start)
+	printKeyValue(out, style, "wake", style.accent(wakeID))
+	printKeyValue(out, style, "state", wakeStateText(active, end))
+	printKeyValue(out, style, "model", strings.TrimLeft(str(wake["model_provider"])+"/"+str(wake["model"]), "/"))
+	printKeyValue(out, style, "started", start)
 	if end == "" {
-		fmt.Fprintln(out, "ended:        still running")
+		printKeyValue(out, style, "ended", style.warn("still running"))
 	} else {
-		fmt.Fprintf(out, "ended:        %s\n", end)
+		printKeyValue(out, style, "ended", end)
 	}
-	fmt.Fprintf(out, "duration:     %s\n", durationText(start, end))
-	fmt.Fprintf(out, "end reason:   %s\n", fallbackText(str(wake["end_reason"]), "unknown"))
-	fmt.Fprintf(out, "assessment:   %s\n", dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), active))
-	fmt.Fprintf(out, "responses:    %d model, %d text, %d text-only loops\n", countInt(counts, "model_responses"), lenArray(wake["text_outputs"]), countInt(counts, "text_only"))
-	fmt.Fprintf(out, "tools:        %d total  shell/search/fetch/sleep=%d/%d/%d/%d\n",
+	printKeyValue(out, style, "duration", durationText(start, end))
+	printKeyValue(out, style, "end reason", fallbackText(str(wake["end_reason"]), "unknown"))
+	assessment := dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), active)
+	printKeyValue(out, style, "assessment", style.paint(assessmentColor(counts, worldChanged, lenArray(wake["errors"]), active), assessment))
+	printKeyValue(out, style, "responses", fmt.Sprintf("%d model, %d text, %d text-only loops", countInt(counts, "model_responses"), lenArray(wake["text_outputs"]), countInt(counts, "text_only")))
+	printKeyValue(out, style, "tools", fmt.Sprintf("%d total  shell/search/fetch/sleep=%d/%d/%d/%d",
 		lenArray(wake["tool_calls"]),
 		countInt(counts, "shell"),
 		countInt(counts, "search"),
 		countInt(counts, "fetch"),
 		countInt(counts, "sleep_or_finish"),
-	)
-	fmt.Fprintf(out, "world:        %s\n", worldChangedText(wake, worldChanged))
-	fmt.Fprintf(out, "health:       %d controller errors, %d wake errors, %d ignored required-tool responses\n",
+	))
+	printKeyValue(out, style, "world", worldChangedText(wake, worldChanged))
+	health := fmt.Sprintf("%d controller errors, %d wake errors, %d ignored required-tool responses",
 		countInt(counts, "controller_errors"),
 		lenArray(wake["errors"]),
 		countInt(counts, "required_ignored"),
 	)
-	fmt.Fprintf(out, "recent eval:  %d response-sized events considered\n", recentResponses)
+	if lenArray(wake["errors"]) == 0 && countInt(counts, "controller_errors") == 0 {
+		health = style.good(health)
+	} else {
+		health = style.bad(health)
+	}
+	printKeyValue(out, style, "health", health)
+	printKeyValue(out, style, "recent eval", fmt.Sprintf("%d response-sized events considered", recentResponses))
 }
 
-func printDashboardWork(out io.Writer, wake map[string]any, counts map[string]any, worldChanged bool) {
-	fmt.Fprintf(out, "summary: %s\n", dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), false))
-	printDashboardWorld(out, wake, worldChanged)
-	printDashboardTools(out, wake)
-	printDashboardText(out, wake)
-	printDashboardErrors(out, wake)
+func printDashboardWork(out io.Writer, style dashboardStyle, wake map[string]any, counts map[string]any, worldChanged bool) {
+	assessment := dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), false)
+	printKeyValue(out, style, "summary", style.paint(assessmentColor(counts, worldChanged, lenArray(wake["errors"]), false), assessment))
+	printDashboardWorld(out, style, wake, worldChanged)
+	printDashboardTools(out, style, wake)
+	printDashboardText(out, style, wake)
+	printDashboardErrors(out, style, wake)
 }
 
-func printDashboardWorld(out io.Writer, wake map[string]any, worldChanged bool) {
+func printDashboardWorld(out io.Writer, style dashboardStyle, wake map[string]any, worldChanged bool) {
 	diff, _ := wake["diff_summary"].(map[string]any)
 	if len(diff) == 0 {
-		fmt.Fprintln(out, "world:   no diff summary recorded")
+		printKeyValue(out, style, "world", "no diff summary recorded")
 		return
 	}
-	fmt.Fprintf(out, "world:   changed=%v entries=%d->%d diff_lines=%d\n",
-		worldChanged,
+	state := style.subtle("unchanged")
+	if worldChanged {
+		state = style.good("changed")
+	}
+	printKeyValue(out, style, "world", fmt.Sprintf("%s entries=%d->%d diff_lines=%d",
+		state,
 		number(diff["before_entries"]),
 		number(diff["after_entries"]),
 		number(diff["diff_lines"]),
-	)
+	))
 	preview, _ := diff["diff_preview"].([]any)
 	if len(preview) == 0 {
 		return
 	}
 	fmt.Fprintln(out, "diff:")
 	for _, line := range takeLastAny(preview, 12) {
-		fmt.Fprintf(out, "  %s\n", compactOneLine(str(line), 140))
+		fmt.Fprintf(out, "    %s\n", compactOneLine(str(line), 140))
 	}
 	if boolValue(diff["diff_truncated"]) {
-		fmt.Fprintln(out, "  ... diff truncated")
+		fmt.Fprintf(out, "    %s\n", style.subtle("... diff truncated"))
 	}
 }
 
-func printDashboardTools(out io.Writer, wake map[string]any) {
+func printDashboardTools(out io.Writer, style dashboardStyle, wake map[string]any) {
 	toolCalls, _ := wake["tool_calls"].([]any)
 	if len(toolCalls) == 0 {
-		fmt.Fprintln(out, "tools:   none")
+		printKeyValue(out, style, "tools", "none")
 		return
 	}
-	fmt.Fprintf(out, "tools:   %d call(s), showing latest %d\n", len(toolCalls), minInt(len(toolCalls), 6))
+	printKeyValue(out, style, "tools", fmt.Sprintf("%d call(s), showing latest %d", len(toolCalls), minInt(len(toolCalls), 6)))
 	for _, item := range takeLastAny(toolCalls, 6) {
 		call, _ := item.(map[string]any)
-		fmt.Fprintf(out, "  #%v %-15s %s\n", call["index"], str(call["name"]), toolCallSummary(call))
+		fmt.Fprintf(out, "    #%v %-15s %s\n", call["index"], style.accent(str(call["name"])), toolCallSummary(style, call))
 		if output := toolOutputPreview(call); output != "" {
-			fmt.Fprintf(out, "      output: %s\n", output)
+			fmt.Fprintf(out, "      %s %s\n", style.subtle("output:"), output)
 		}
 	}
 }
 
-func printDashboardText(out io.Writer, wake map[string]any) {
+func printDashboardText(out io.Writer, style dashboardStyle, wake map[string]any) {
 	textOutputs, _ := wake["text_outputs"].([]any)
 	if len(textOutputs) == 0 {
-		fmt.Fprintln(out, "text:    none")
+		printKeyValue(out, style, "text", "none")
 		return
 	}
-	fmt.Fprintf(out, "text:    %d output(s), showing latest %d\n", len(textOutputs), minInt(len(textOutputs), 3))
+	printKeyValue(out, style, "text", fmt.Sprintf("%d output(s), showing latest %d", len(textOutputs), minInt(len(textOutputs), 3)))
 	for _, item := range takeLastAny(textOutputs, 3) {
 		text, _ := item.(map[string]any)
 		marker := ""
 		if boolValue(text["truncated"]) {
 			marker = " truncated"
 		}
-		fmt.Fprintf(out, "  - %d bytes%s: %s\n", number(text["bytes"]), marker, compactOneLine(str(text["preview"]), 180))
+		fmt.Fprintf(out, "    - %s %s\n", style.subtle(fmt.Sprintf("%d bytes%s:", number(text["bytes"]), marker)), compactOneLine(str(text["preview"]), 180))
 	}
 }
 
-func printDashboardErrors(out io.Writer, wake map[string]any) {
+func printDashboardErrors(out io.Writer, style dashboardStyle, wake map[string]any) {
 	errorsList, _ := wake["errors"].([]any)
 	if len(errorsList) == 0 {
-		fmt.Fprintln(out, "errors:  none")
+		printKeyValue(out, style, "errors", style.good("none"))
 		return
 	}
-	fmt.Fprintf(out, "errors:  %d\n", len(errorsList))
+	printKeyValue(out, style, "errors", style.bad(strconv.Itoa(len(errorsList))))
 	for _, item := range takeLastAny(errorsList, 5) {
-		fmt.Fprintf(out, "  - %s\n", compactOneLine(str(item), 180))
+		fmt.Fprintf(out, "    - %s\n", compactOneLine(str(item), 180))
 	}
 }
 
-func printDashboardRecentWakes(cfg Config, out io.Writer) error {
+func printDashboardRecentWakes(cfg Config, style dashboardStyle, out io.Writer) error {
 	wakes, err := loadWakeSummaries(cfg)
 	if err != nil {
 		return err
@@ -725,13 +978,19 @@ func printDashboardRecentWakes(cfg Config, out io.Writer) error {
 	for _, wake := range takeLastWakeMaps(wakes, 6) {
 		diff, _ := wake["diff_summary"].(map[string]any)
 		changed := boolValue(diff["changed"])
-		fmt.Fprintf(out, "%s  %8s  %6s  tools=%-2d text=%-2d world=%v  %s\n",
-			str(wake["wake_id"]),
+		worldText := style.subtle("no")
+		if changed {
+			worldText = style.good("yes")
+		}
+		reason := fallbackText(str(wake["end_reason"]), "unknown")
+		reason = style.paint(reasonColor(reason), reason)
+		fmt.Fprintf(out, "  %-28s %8s  %-18s tools=%-2d text=%-3d world=%s  %s\n",
+			style.accent(str(wake["wake_id"])),
 			durationText(str(wake["start_time"]), str(wake["end_time"])),
-			fallbackText(str(wake["end_reason"]), "unknown"),
+			reason,
 			lenArray(wake["tool_calls"]),
 			lenArray(wake["text_outputs"]),
-			changed,
+			worldText,
 			str(wake["model"]),
 		)
 	}
@@ -774,6 +1033,38 @@ func dashboardAssessment(counts map[string]any, worldChanged bool, wakeErrors in
 	return "no wake activity recorded yet"
 }
 
+func assessmentColor(counts map[string]any, worldChanged bool, wakeErrors int, active bool) string {
+	if active {
+		return ansiYellow
+	}
+	if wakeErrors > 0 || countInt(counts, "controller_errors") > 0 {
+		return ansiRed
+	}
+	if worldChanged {
+		return ansiGreen
+	}
+	if countInt(counts, "tool_calls") > 0 {
+		return ansiCyan
+	}
+	if countInt(counts, "model_responses") > 0 || countInt(counts, "model_text") > 0 {
+		return ansiYellow
+	}
+	return ansiWhite
+}
+
+func reasonColor(reason string) string {
+	switch reason {
+	case "sleep_or_finish":
+		return ansiGreen
+	case "controller_error":
+		return ansiRed
+	case "context_exhausted", "controller_stopped", "unknown":
+		return ansiYellow
+	default:
+		return ansiWhite
+	}
+}
+
 func worldChangedText(wake map[string]any, worldChanged bool) string {
 	diff, _ := wake["diff_summary"].(map[string]any)
 	if len(diff) == 0 {
@@ -787,11 +1078,17 @@ func worldChangedText(wake map[string]any, worldChanged bool) string {
 	)
 }
 
-func toolCallSummary(call map[string]any) string {
+func toolCallSummary(style dashboardStyle, call map[string]any) string {
 	parts := []string{}
 	result, _ := call["result"].(map[string]any)
 	if len(result) > 0 {
-		parts = append(parts, fmt.Sprintf("ok=%v", boolValue(result["ok"])))
+		okText := "ok=false"
+		if boolValue(result["ok"]) {
+			okText = style.good("ok=true")
+		} else {
+			okText = style.bad(okText)
+		}
+		parts = append(parts, okText)
 		if elapsed := numberOrString(result["elapsed_seconds"]); elapsed != "" {
 			parts = append(parts, "elapsed="+elapsed+"s")
 		}
@@ -804,6 +1101,58 @@ func toolCallSummary(call map[string]any) string {
 		parts = append(parts, "args="+args)
 	}
 	return strings.Join(parts, " ")
+}
+
+func takeLastEvents(items []Event, n int) []Event {
+	if n <= 0 || len(items) <= n {
+		return items
+	}
+	return items[len(items)-n:]
+}
+
+func formatDashboardEvent(style dashboardStyle, event Event) string {
+	kind := str(event["type"])
+	wake := str(event["wake_id"])
+	if wake == "" {
+		wake = "-"
+	}
+	detail := ""
+	switch kind {
+	case "model_text":
+		if payload, ok := event["text"].(map[string]any); ok {
+			detail = fmt.Sprintf("text=%q", compactOneLine(str(payload["preview"]), 110))
+		}
+	case "tool_call":
+		detail = fmt.Sprintf("tool=%s args=%s", str(event["tool"]), compactOneLine(compactJSON(event["arguments"]), 120))
+	case "model_response":
+		detail = fmt.Sprintf("model=%s finish=%s tool_calls=%v", str(event["model"]), str(event["finish_reason"]), event["tool_call_count"])
+	case "wake_end":
+		detail = "reason=" + str(event["end_reason"])
+	}
+	if detail != "" {
+		detail = "  " + detail
+	}
+	return fmt.Sprintf("  %s  %-30s wake=%s%s",
+		style.subtle(str(event["time"])),
+		style.paint(eventColor(kind), kind),
+		wake,
+		detail,
+	)
+}
+
+func eventColor(kind string) string {
+	switch kind {
+	case "controller_error":
+		return ansiRed
+	case "tool_call", "shell_result", "search_result", "fetch_result":
+		return ansiCyan
+	case "wake_start", "wake_end", "wake_summary_written":
+		return ansiGreen
+	case "model_response", "model_text", "model_text_only":
+		return ansiBlue
+	default:
+		return ansiWhite
+	}
 }
 
 func toolOutputPreview(call map[string]any) string {
@@ -886,6 +1235,25 @@ func valueFromEnv(key string, dotenv map[string]string, fallback string) string 
 		return value
 	}
 	return fallback
+}
+
+func makerControllerEnv(cfg Config) []string {
+	env := os.Environ()
+	env = envOverride(env, "MAKER_PLACE_DIR", cfg.MakerPlace)
+	env = envOverride(env, "WORLD_VOLUME", cfg.WorldVolume)
+	env = envOverride(env, "SANDBOX_IMAGE", cfg.SandboxImage)
+	return env
+}
+
+func envOverride(env []string, key string, value string) []string {
+	prefix := key + "="
+	result := []string{}
+	for _, item := range env {
+		if !strings.HasPrefix(item, prefix) {
+			result = append(result, item)
+		}
+	}
+	return append(result, prefix+value)
 }
 
 func ollamaModelNames(baseURL string, timeout time.Duration) (map[string]bool, error) {

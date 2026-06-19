@@ -34,6 +34,8 @@ Run:
 
 ```bash
 MOCK_MODEL=1 scripts/run-once.sh
+maker start
+maker stop
 scripts/start.sh
 scripts/stop.sh
 ```
@@ -41,10 +43,10 @@ scripts/stop.sh
 Inspect:
 
 ```bash
-go run ./cmd/maker status
-go run ./cmd/maker events --last 20
-go run ./cmd/maker show last
-go run ./cmd/maker dashboard --once --no-clear
+maker status
+maker events --last 20
+maker show last
+maker dashboard --once --no-clear
 scripts/inspect-world.sh
 scripts/watch.sh
 ```

@@ -13,9 +13,9 @@ The command exits with:
 
 ## Loop
 
-`python3 controller.py loop` repeats wakes until stopped. `scripts/start.sh`
-starts it with `nohup`, writes `maker-place/controller.pid`, and appends output
-to `maker-place/controller.log`.
+`python3 controller.py loop` repeats wakes until stopped. `maker start` starts
+it in the background, writes `maker-place/controller.pid`, and appends output to
+`maker-place/controller.log`.
 
 The loop checks `maker-place/stop` and handles `SIGTERM` and `SIGINT`.
 
@@ -35,7 +35,9 @@ The controller tries to write the after snapshot, stop the sandbox container,
 write the wake summary, append `wake_end`, and release the wake lock in a
 `finally` block.
 
-`scripts/stop.sh` also removes active containers with label `maker.runtime=finn`.
+`maker stop` also removes active containers with label `maker.runtime=finn`.
+The legacy `scripts/start.sh` and `scripts/stop.sh` wrappers use the same
+lifecycle files.
 
 ## Related
 

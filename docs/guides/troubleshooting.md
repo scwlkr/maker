@@ -21,7 +21,7 @@ Check:
 
 ```bash
 docker info
-go run ./cmd/maker doctor
+maker doctor
 ```
 
 ## `controller already running`
@@ -31,8 +31,8 @@ Cause: `maker-place/controller.pid` points to a live process.
 Inspect or stop it:
 
 ```bash
-go run ./cmd/maker status
-scripts/stop.sh
+maker status
+maker stop
 ```
 
 ## `sandbox image not found`
@@ -52,8 +52,8 @@ The Python controller can auto-build the image when it is missing.
 Check local readiness:
 
 ```bash
-go run ./cmd/maker doctor
-go run ./cmd/maker probe-model --provider ollama --model llama3.1:8b
+maker doctor
+maker probe-model --provider ollama --model llama3.1:8b
 ```
 
 Install models with `ollama pull MODEL_NAME`.
@@ -67,8 +67,8 @@ continue until context exhaustion if the model never calls a tool.
 Inspect:
 
 ```bash
-go run ./cmd/maker events --last 50
-go run ./cmd/maker evaluate --wake current --last-responses 10
+maker events --last 50
+maker evaluate --wake current --last-responses 10
 ```
 
 ## Related

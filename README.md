@@ -55,12 +55,13 @@ MOCK_MODEL=1 scripts/run-once.sh
 Start and stop the loop:
 
 ```bash
-scripts/start.sh
-scripts/stop.sh
+maker start
+maker stop
 ```
 
 The default loop interval is `300` seconds. A wake lock prevents overlapping
-wakes.
+wakes. The legacy `scripts/start.sh` and `scripts/stop.sh` wrappers remain
+available.
 
 ## Inspect
 
@@ -89,6 +90,8 @@ maker dashboard --once --no-clear
 The Go CLI is the main debugging surface:
 
 ```bash
+maker start
+maker stop
 maker status
 maker events --last 20
 maker wakes
@@ -97,6 +100,7 @@ maker world
 maker doctor
 maker evaluate --wake current --last-responses 10
 maker dashboard
+maker dashboard --color always
 ```
 
 Install a local binary into `~/.local/bin`:

@@ -15,14 +15,15 @@ MOCK_MODEL=1 scripts/run-once.sh
 ## Start And Stop The Loop
 
 ```bash
-scripts/start.sh
-scripts/stop.sh
+maker start
+maker stop
 ```
 
-`scripts/start.sh` writes `maker-place/controller.pid` and appends output to
-`maker-place/controller.log`. `scripts/stop.sh` creates `maker-place/stop`, asks
-the process to stop, removes the pid file, and removes active sandbox containers
-with the `maker.runtime=finn` label.
+`maker start` writes `maker-place/controller.pid` and appends output to
+`maker-place/controller.log`. `maker stop` creates `maker-place/stop`, asks the
+process to stop, removes the pid file, and removes active sandbox containers
+with the `maker.runtime=finn` label. The legacy shell wrappers remain available:
+`scripts/start.sh` and `scripts/stop.sh`.
 
 ## Watch Runtime Activity
 
@@ -30,6 +31,7 @@ with the `maker.runtime=finn` label.
 scripts/watch.sh
 maker dashboard
 maker dashboard --once --no-clear
+maker dashboard --color always
 ```
 
 ## Show Wake Records
@@ -57,8 +59,8 @@ Maker Place logs remain after a world reset.
 Edit `.env`, then restart the loop:
 
 ```bash
-scripts/stop.sh
-scripts/start.sh
+maker stop
+maker start
 ```
 
 For one-off testing, exported environment variables override `.env` values.

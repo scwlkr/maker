@@ -9,14 +9,16 @@
 
 ## CLI
 
-- `cmd/maker/main.go`: Go CLI implementation.
+- `cmd/maker/main.go`: Go CLI implementation, including start/stop,
+  inspection, evaluation, and dashboard commands.
 - `go.mod`: Go module declaration.
 
 ## Operations
 
 - `scripts/run-once.sh`: run one wake.
-- `scripts/start.sh`: start loop with `nohup`.
-- `scripts/stop.sh`: stop loop and active sandbox containers.
+- `scripts/start.sh`: legacy wrapper to start the loop with `nohup`.
+- `scripts/stop.sh`: legacy wrapper to stop the loop and active sandbox
+  containers.
 - `scripts/watch.sh`: tail Maker Place events.
 - `scripts/show-last.sh`: show latest wake.
 - `scripts/show-wake.sh`: show a specific wake.

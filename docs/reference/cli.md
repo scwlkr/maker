@@ -29,6 +29,8 @@ maker COMMAND
 ## Commands
 
 ```bash
+maker start
+maker stop
 maker status
 maker events --last 20
 maker wakes
@@ -41,8 +43,14 @@ maker evaluate --wake current --last-responses 10
 maker dashboard --interval 10 --events 8 --last-responses 10
 ```
 
+`start` starts the controller loop in the background and writes
+`maker-place/controller.pid` plus `maker-place/controller.log`. `stop` creates
+the stop file, terminates the recorded controller when present, removes the pid
+file, and removes active Finn sandbox containers.
+
 `dashboard` renders runtime state, the current or latest wake, work accomplished,
-recent wakes, and recent events. It also accepts `--once` and `--no-clear`.
+recent wakes, and recent events. It also accepts `--once`, `--no-clear`, and
+`--color auto|always|never`.
 
 ## Input And Output Routing
 

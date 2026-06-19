@@ -19,10 +19,11 @@ This file is the compact source of truth for current Maker behavior.
 - Native tool schemas for `shell`, `search`, `fetch`, and `sleep_or_finish`.
 - `fetch` blocks localhost, private, link-local, multicast, reserved,
   unspecified, and metadata-style targets before fetching.
-- Go CLI commands for status, events, wakes, show, world, doctor, Ollama model
-  probing, response counting, wake evaluation, and dashboard rendering.
+- Go CLI commands for start, stop, status, events, wakes, show, world, doctor,
+  Ollama model probing, response counting, wake evaluation, and dashboard
+  rendering.
 - Dashboard rendering shows runtime state, the current or latest wake, work
-  accomplished, recent wakes, and recent events.
+  accomplished, recent wakes, recent events, and colorized terminal output.
 - Pytest coverage for controller units, tool blocking, scripts, CLI behavior,
   and Docker-backed sandbox behavior.
 

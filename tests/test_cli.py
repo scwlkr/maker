@@ -143,7 +143,9 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
     base = ["--maker-place", str(maker)]
 
     dashboard = run_maker(repo_root, [*base, "dashboard", "--once", "--no-clear", "--events", "3"])
-    assert "Maker Live Dashboard" in dashboard.stdout
+    assert "Maker Dashboard" in dashboard.stdout
+    assert "\x1b[" not in dashboard.stdout
+    assert "[IDLE] no controller loop or wake is active" in dashboard.stdout
     assert "STATUS" in dashboard.stdout
     assert "CURRENT WAKE" in dashboard.stdout
     assert "WORK ACCOMPLISHED" in dashboard.stdout
@@ -151,8 +153,11 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
     assert "RECENT EVENTS" in dashboard.stdout
     assert wake_id in dashboard.stdout
     assert "tool activity observed; no world listing changes" in dashboard.stdout
-    assert "world:   changed=false" in dashboard.stdout
-    assert "tools:   1 call(s)" in dashboard.stdout
+    assert "world         unchanged entries=1->1 diff_lines=0" in dashboard.stdout
+    assert "tools         1 call(s)" in dashboard.stdout
+
+    color_dashboard = run_maker(repo_root, [*base, "dashboard", "--once", "--no-clear", "--color", "always"])
+    assert "\x1b[" in color_dashboard.stdout
 
     out_path = tmp_path / "dashboard.out"
     run_maker(
@@ -160,8 +165,35 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
         [*base, "--output", str(out_path), "dashboard", "--once", "--no-clear", "--events", "2"],
     )
     written = out_path.read_text()
-    assert "Maker Live Dashboard" in written
+    assert "Maker Dashboard" in written
     assert "wake_end" in written
+
+
+def test_go_cli_start_and_stop_commands(repo_root: Path, tmp_path: Path) -> None:
+    maker = tmp_path / "maker-place"
+    maker.mkdir()
+    pid_path = maker / "controller.pid"
+    pid_path.write_text(str(os.getpid()))
+
+    start = run_maker(repo_root, ["--maker-place", str(maker), "start"])
+
+    assert "controller already running" in start.stdout
+    assert pid_path.read_text() == str(os.getpid())
+
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text("#!/usr/bin/env bash\nexit 0\n")
+    fake_docker.chmod(0o755)
+    stop_maker = tmp_path / "stop-maker-place"
+    stop = run_maker(
+        repo_root,
+        ["--maker-place", str(stop_maker), "stop"],
+        env={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
+    )
+
+    assert "controller stopped" in stop.stdout
+    assert (stop_maker / "stop").exists()
 
 
 def test_go_cli_evaluate_prefers_wake_diff_over_snapshot_presence(repo_root: Path, tmp_path: Path) -> None:
