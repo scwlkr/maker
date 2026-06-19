@@ -1,0 +1,11 @@
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: Dockerfile.controller
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./maker-place:/app/maker-place
+    command: ["python", "controller.py", "loop"]

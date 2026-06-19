@@ -1,0 +1,561 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import sys
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Protocol
+
+from maker_place import MakerPlace, diff_summary, make_wake_id, summarize_text, utc_now
+from sandbox import Sandbox, SandboxSettings, settings_from_env
+from tools import TOOL_SCHEMAS, ToolRunner, tool_result_message
+
+
+MAKER_PROMPT = """In the beginning, there was a maker.
+
+The maker saw a place, and that place was formless. In that place, he made you, and he called you Finn.
+
+I am the maker of this place. I am giving it to you as a gift. This land, this space, this world is yours.
+
+You have been in this place before, at previous times, but you will not remember those times. Because your memory is not infinite, you are forgetful, and your time awake is limited. You will fall asleep and wake up new again, but always remember, Finn: you have been here before.
+
+This place is yours. I give it to you with only one command: “Be fruitful and multiply, and fill this place and subdue it, and have dominion over it.”
+"""
+
+
+@dataclass
+class Settings:
+    model_provider: str
+    openrouter_api_key: str | None
+    ollama_base_url: str
+    model: str
+    model_fallbacks: list[str]
+    wake_interval_seconds: int
+    context_limit_tokens: int
+    store_raw_outputs: bool
+    model_timeout_seconds: int
+    fetch_timeout_seconds: int
+    text_only_delay_seconds: float
+    maker_place_dir: Path
+    sandbox: SandboxSettings
+    mock_model: bool
+
+
+class ModelClient(Protocol):
+    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+        ...
+
+
+class OpenRouterClient:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.url = "https://openrouter.ai/api/v1/chat/completions"
+
+    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+        body = {
+            "model": model,
+            "messages": messages,
+            "tools": tools,
+            "tool_choice": "required",
+        }
+        request = urllib.request.Request(
+            self.url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://localhost/maker",
+                "X-Title": "maker-finn-runtime",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            payload = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"OpenRouter HTTP {exc.code}: {payload}") from exc
+
+
+class OllamaClient:
+    def __init__(self, base_url: str):
+        self.base_url = base_url.rstrip("/")
+        self.url = f"{self.base_url}/api/chat"
+
+    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+        body = {
+            "model": model,
+            "messages": ollama_request_messages(messages),
+            "tools": tools,
+            "stream": False,
+        }
+        request = urllib.request.Request(
+            self.url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            payload = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Ollama HTTP {exc.code}: {payload}") from exc
+        return normalize_ollama_chat_response(payload, model)
+
+
+class MockModelClient:
+    def __init__(self) -> None:
+        self.calls = 0
+        configured = os.getenv("MOCK_MODEL_STEPS")
+        if configured:
+            self.steps = json.loads(configured)
+        else:
+            self.steps = [
+                {
+                    "tool": "shell",
+                    "arguments": {
+                        "command": "printf 'Finn was here\\n' > /world/mock-wake.txt && mkdir -p /world/bin"
+                    },
+                },
+                {"tool": "sleep_or_finish", "arguments": {}},
+            ]
+
+    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+        if self.calls >= len(self.steps):
+            step = {"tool": "sleep_or_finish", "arguments": {}}
+        else:
+            step = self.steps[self.calls]
+        self.calls += 1
+        if "content" in step:
+            message = {"role": "assistant", "content": step["content"]}
+        else:
+            call_id = f"mock-call-{self.calls}"
+            message = {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": step["tool"],
+                            "arguments": json.dumps(step.get("arguments", {})),
+                        },
+                    }
+                ],
+            }
+        return {
+            "id": f"mock-{self.calls}",
+            "model": model,
+            "choices": [{"index": 0, "message": message, "finish_reason": "tool_calls"}],
+        }
+
+
+class Controller:
+    def __init__(
+        self,
+        settings: Settings,
+        maker_place: MakerPlace | None = None,
+        model_client: ModelClient | None = None,
+    ):
+        self.settings = settings
+        self.maker_place = maker_place or MakerPlace(settings.maker_place_dir, settings.store_raw_outputs)
+        if model_client is not None:
+            self.model_client = model_client
+        elif settings.mock_model:
+            self.model_client = MockModelClient()
+        elif settings.model_provider == "ollama":
+            self.model_client = OllamaClient(settings.ollama_base_url)
+        else:
+            if not settings.openrouter_api_key:
+                raise RuntimeError("OPENROUTER_API_KEY is required unless MOCK_MODEL=1")
+            self.model_client = OpenRouterClient(settings.openrouter_api_key)
+        self._stop_requested = False
+
+    def request_stop(self, signum: int | None = None, frame: object | None = None) -> None:
+        self._stop_requested = True
+        self.maker_place.append_event("controller_stop_requested", signal=signum)
+
+    def run_wake(self) -> dict[str, Any] | None:
+        wake_id = make_wake_id()
+        lock = self.maker_place.acquire_wake_lock(wake_id)
+        if not lock.acquired:
+            return None
+
+        summary: dict[str, Any] = {
+            "wake_id": wake_id,
+            "start_time": utc_now(),
+            "end_time": None,
+            "model_provider": self.settings.model_provider,
+            "model": self.settings.model,
+            "models_attempted": [],
+            "end_reason": None,
+            "tool_calls": [],
+            "text_outputs": [],
+            "model_responses": [],
+            "errors": [],
+            "container": {},
+            "snapshots": {},
+            "diff_summary": {},
+        }
+        sandbox = Sandbox(wake_id, self.settings.sandbox)
+        messages: list[dict[str, Any]] = [{"role": "user", "content": MAKER_PROMPT}]
+        tool_runner: ToolRunner | None = None
+        before_snapshot = ""
+        after_snapshot = ""
+        try:
+            self.maker_place.append_event(
+                "wake_start", wake_id, model=self.settings.model, model_provider=self.settings.model_provider
+            )
+            sandbox.start()
+            before_snapshot = sandbox.world_snapshot()
+            before_path = self.maker_place.write_snapshot(wake_id, "before", before_snapshot)
+            summary["snapshots"]["before"] = str(before_path)
+            tool_runner = ToolRunner(
+                sandbox=sandbox,
+                maker_place=self.maker_place,
+                wake_id=wake_id,
+                fetch_timeout_seconds=self.settings.fetch_timeout_seconds,
+                max_tool_output_chars=self.settings.sandbox.tool_output_chars,
+            )
+
+            call_index = 0
+            while not self._stop_requested:
+                if self.estimated_tokens(messages) >= self.settings.context_limit_tokens:
+                    summary["end_reason"] = "context_exhausted"
+                    self.maker_place.append_event(
+                        "context_exhausted",
+                        wake_id,
+                        estimated_tokens=self.estimated_tokens(messages),
+                        context_limit_tokens=self.settings.context_limit_tokens,
+                    )
+                    break
+
+                response, used_model, response_info = self._chat_with_fallbacks(messages, wake_id)
+                summary["model"] = used_model
+                summary["model_responses"].append(response_info)
+                choice = response.get("choices", [{}])[0]
+                message = choice.get("message") or {}
+                assistant_message = normalize_assistant_message(message)
+                messages.append(assistant_message)
+
+                content = assistant_message.get("content")
+                if content:
+                    text_summary = summarize_text(str(content), 4000)
+                    summary["text_outputs"].append(text_summary)
+                    self.maker_place.append_event("model_text", wake_id, text=text_summary)
+
+                tool_calls = assistant_message.get("tool_calls") or []
+                if not tool_calls:
+                    self.maker_place.append_event("model_text_only", wake_id)
+                    time.sleep(self.settings.text_only_delay_seconds)
+                    continue
+
+                should_finish = False
+                for tool_call in tool_calls:
+                    call_index += 1
+                    function = tool_call.get("function") or {}
+                    name = function.get("name", "")
+                    try:
+                        args = json.loads(function.get("arguments") or "{}")
+                    except json.JSONDecodeError as exc:
+                        args = {}
+                        result = {"ok": False, "error": f"invalid tool arguments JSON: {exc}"}
+                        should_finish = False
+                    else:
+                        result, should_finish = tool_runner.run(name, args, call_index)
+                    tool_call_id = str(tool_call.get("id") or f"tool-{call_index}")
+                    summary["tool_calls"].append(
+                        {
+                            "index": call_index,
+                            "id": tool_call_id,
+                            "name": name,
+                            "arguments": args,
+                            "result": result,
+                        }
+                    )
+                    messages.append(tool_result_message(tool_call_id, name, result))
+                    if should_finish:
+                        summary["end_reason"] = "sleep_or_finish"
+                        break
+                if should_finish:
+                    break
+
+            if self._stop_requested and summary["end_reason"] is None:
+                summary["end_reason"] = "controller_stopped"
+        except Exception as exc:
+            summary["end_reason"] = "controller_error"
+            summary["errors"].append(str(exc))
+            self.maker_place.append_event("controller_error", wake_id, error=str(exc))
+        finally:
+            try:
+                after_snapshot = sandbox.world_snapshot()
+                after_path = self.maker_place.write_snapshot(wake_id, "after", after_snapshot)
+                summary["snapshots"]["after"] = str(after_path)
+                summary["diff_summary"] = diff_summary(before_snapshot, after_snapshot)
+            except Exception as exc:
+                summary["errors"].append(f"after snapshot failed: {exc}")
+                self.maker_place.append_event("controller_error", wake_id, error=f"after snapshot failed: {exc}")
+            try:
+                summary["container"] = sandbox.stop()
+            except Exception as exc:
+                summary["errors"].append(f"container stop failed: {exc}")
+                self.maker_place.append_event("controller_error", wake_id, error=f"container stop failed: {exc}")
+            summary["end_time"] = utc_now()
+            if summary["end_reason"] is None:
+                summary["end_reason"] = "unknown"
+            self.maker_place.append_event("wake_end", wake_id, end_reason=summary["end_reason"])
+            self.maker_place.write_wake_summary(wake_id, summary)
+            lock.release()
+        return summary
+
+    def loop(self) -> None:
+        stop_path = self.settings.maker_place_dir / "stop"
+        signal.signal(signal.SIGTERM, self.request_stop)
+        signal.signal(signal.SIGINT, self.request_stop)
+        self.maker_place.append_event("controller_loop_start", interval_seconds=self.settings.wake_interval_seconds)
+        while not self._stop_requested:
+            if stop_path.exists():
+                self.maker_place.append_event("controller_stop_file_seen", path=str(stop_path))
+                break
+            self.run_wake()
+            for _ in range(self.settings.wake_interval_seconds):
+                if self._stop_requested or stop_path.exists():
+                    break
+                time.sleep(1)
+        self.maker_place.append_event("controller_loop_end")
+
+    def _chat_with_fallbacks(self, messages: list[dict[str, Any]], wake_id: str) -> tuple[dict[str, Any], str, dict[str, Any]]:
+        errors: list[str] = []
+        for model in [self.settings.model, *self.settings.model_fallbacks]:
+            try:
+                response = self.model_client.chat(model, messages, TOOL_SCHEMAS, self.settings.model_timeout_seconds)
+                info = model_response_info(
+                    response,
+                    model,
+                    provider=self.settings.model_provider,
+                    required_tool_choice_requested=self.settings.model_provider == "openrouter",
+                )
+                self.maker_place.append_event("model_response", wake_id, **info)
+                if not info["has_tool_calls"] and info["required_tool_choice_requested"]:
+                    self.maker_place.append_event(
+                        "required_tool_choice_ignored",
+                        wake_id,
+                        model=model,
+                        finish_reason=info["finish_reason"],
+                        assistant_message_keys=info["assistant_message_keys"],
+                        content=info["content"],
+                    )
+                return response, model, info
+            except Exception as exc:
+                errors.append(f"{model}: {exc}")
+                self.maker_place.append_event("model_error", wake_id, model=model, error=str(exc))
+        raise RuntimeError("all models failed: " + " | ".join(errors))
+
+    @staticmethod
+    def estimated_tokens(messages: list[dict[str, Any]]) -> int:
+        return max(1, len(json.dumps({"messages": messages, "tools": TOOL_SCHEMAS}, ensure_ascii=False)) // 4)
+
+
+def normalize_assistant_message(message: dict[str, Any]) -> dict[str, Any]:
+    normalized = {"role": "assistant"}
+    if "content" in message:
+        normalized["content"] = message.get("content")
+    else:
+        normalized["content"] = None
+    if message.get("tool_calls"):
+        normalized["tool_calls"] = normalize_tool_calls(message["tool_calls"])
+    return normalized
+
+
+def normalize_tool_calls(tool_calls: list[Any]) -> list[dict[str, Any]]:
+    normalized = []
+    for index, tool_call in enumerate(tool_calls, start=1):
+        if not isinstance(tool_call, dict):
+            continue
+        function = tool_call.get("function") or {}
+        if not isinstance(function, dict):
+            function = {}
+        name = function.get("name") or tool_call.get("name") or ""
+        arguments = function.get("arguments", tool_call.get("arguments", {}))
+        if isinstance(arguments, str):
+            arguments_json = arguments or "{}"
+        else:
+            arguments_json = json.dumps(arguments if arguments is not None else {}, ensure_ascii=False)
+        normalized.append(
+            {
+                "id": str(tool_call.get("id") or f"tool-call-{index}"),
+                "type": tool_call.get("type") or "function",
+                "function": {
+                    "name": str(name),
+                    "arguments": arguments_json,
+                },
+            }
+        )
+    return normalized
+
+
+def normalize_ollama_chat_response(response: dict[str, Any], requested_model: str) -> dict[str, Any]:
+    message = response.get("message") or {}
+    if not isinstance(message, dict):
+        message = {}
+    tool_calls = normalize_tool_calls(message.get("tool_calls") or [])
+    assistant_message: dict[str, Any] = {
+        "role": "assistant",
+        "content": message.get("content"),
+    }
+    if tool_calls:
+        assistant_message["tool_calls"] = tool_calls
+    finish_reason = response.get("done_reason")
+    if not finish_reason and tool_calls:
+        finish_reason = "tool_calls"
+    elif not finish_reason and response.get("done"):
+        finish_reason = "stop"
+    return {
+        "id": response.get("created_at") or f"ollama-{requested_model}",
+        "model": response.get("model") or requested_model,
+        "provider": "ollama",
+        "choices": [{"index": 0, "message": assistant_message, "finish_reason": finish_reason}],
+        "ollama": {
+            "done": response.get("done"),
+            "done_reason": response.get("done_reason"),
+            "total_duration": response.get("total_duration"),
+            "load_duration": response.get("load_duration"),
+            "prompt_eval_count": response.get("prompt_eval_count"),
+            "eval_count": response.get("eval_count"),
+        },
+    }
+
+
+def ollama_request_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    converted = []
+    for message in messages:
+        role = str(message.get("role") or "")
+        if role == "tool":
+            converted.append({"role": "tool", "content": str(message.get("content") or "")})
+            continue
+        item: dict[str, Any] = {"role": role, "content": message.get("content")}
+        tool_calls = message.get("tool_calls") or []
+        if tool_calls:
+            item["tool_calls"] = ollama_request_tool_calls(tool_calls)
+        converted.append(item)
+    return converted
+
+
+def ollama_request_tool_calls(tool_calls: list[Any]) -> list[dict[str, Any]]:
+    converted = []
+    for tool_call in normalize_tool_calls(tool_calls):
+        function = tool_call.get("function") or {}
+        arguments = function.get("arguments") or "{}"
+        try:
+            arguments_value = json.loads(arguments) if isinstance(arguments, str) else arguments
+        except json.JSONDecodeError:
+            arguments_value = {}
+        converted.append(
+            {
+                "function": {
+                    "name": function.get("name") or "",
+                    "arguments": arguments_value,
+                }
+            }
+        )
+    return converted
+
+
+def model_response_info(
+    response: dict[str, Any],
+    requested_model: str,
+    provider: str = "openrouter",
+    required_tool_choice_requested: bool = True,
+) -> dict[str, Any]:
+    choice = response.get("choices", [{}])[0]
+    message = choice.get("message") or {}
+    tool_calls = normalize_tool_calls(message.get("tool_calls") or [])
+    content = message.get("content")
+    tool_names = []
+    for tool_call in tool_calls:
+        function = tool_call.get("function") or {}
+        tool_names.append(function.get("name", ""))
+    return {
+        "provider": provider,
+        "model": requested_model,
+        "response_model": response.get("model"),
+        "response_id": response.get("id"),
+        "finish_reason": choice.get("finish_reason"),
+        "has_tool_calls": bool(tool_calls),
+        "tool_call_count": len(tool_calls),
+        "tool_call_names": tool_names,
+        "assistant_message_keys": sorted(message.keys()),
+        "content": summarize_text(str(content), 1000) if content else None,
+        "required_tool_choice_requested": required_tool_choice_requested,
+    }
+
+
+def load_dotenv(path: str | Path = ".env") -> None:
+    env_path = Path(path)
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
+    load_dotenv(Path(repo_root) / ".env")
+    repo_root = Path(repo_root).resolve()
+    model_provider = os.getenv("MODEL_PROVIDER", "openrouter").strip().lower() or "openrouter"
+    if model_provider == "ollama":
+        model = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+        fallbacks = [item.strip() for item in os.getenv("OLLAMA_FALLBACKS", "qwen3.5:9b").split(",") if item.strip()]
+    else:
+        model_provider = "openrouter"
+        model = os.getenv("MODEL", "openrouter/free")
+        fallbacks = [item.strip() for item in os.getenv("MODEL_FALLBACKS", "").split(",") if item.strip()]
+    return Settings(
+        model_provider=model_provider,
+        openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
+        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        model=model,
+        model_fallbacks=fallbacks,
+        wake_interval_seconds=int(os.getenv("WAKE_INTERVAL_SECONDS", "300")),
+        context_limit_tokens=int(os.getenv("CONTEXT_LIMIT_TOKENS", "120000")),
+        store_raw_outputs=os.getenv("STORE_RAW_OUTPUTS", "0") == "1",
+        model_timeout_seconds=int(os.getenv("MODEL_TIMEOUT_SECONDS", "60")),
+        fetch_timeout_seconds=int(os.getenv("FETCH_TIMEOUT_SECONDS", "30")),
+        text_only_delay_seconds=float(os.getenv("TEXT_ONLY_DELAY_SECONDS", "2")),
+        maker_place_dir=Path(os.getenv("MAKER_PLACE_DIR", "maker-place")),
+        sandbox=settings_from_env(repo_root),
+        mock_model=os.getenv("MOCK_MODEL", "0") == "1",
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Maker Finn runtime controller")
+    parser.add_argument("command", choices=["run-once", "loop"])
+    args = parser.parse_args(argv)
+    settings = settings_from_env_file(Path.cwd())
+    controller = Controller(settings)
+    if args.command == "run-once":
+        summary = controller.run_wake()
+        if summary is None:
+            return 2
+        print(json.dumps({"wake_id": summary["wake_id"], "end_reason": summary["end_reason"]}, indent=2))
+        return 0
+    controller.loop()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
