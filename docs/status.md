@@ -21,6 +21,8 @@ This file is the compact source of truth for current Maker behavior.
   unspecified, and metadata-style targets before fetching.
 - Go CLI commands for status, events, wakes, show, world, doctor, Ollama model
   probing, response counting, wake evaluation, and dashboard rendering.
+- Dashboard rendering shows runtime state, the current or latest wake, work
+  accomplished, recent wakes, and recent events.
 - Pytest coverage for controller units, tool blocking, scripts, CLI behavior,
   and Docker-backed sandbox behavior.
 

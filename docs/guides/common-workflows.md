@@ -28,8 +28,8 @@ with the `maker.runtime=finn` label.
 
 ```bash
 scripts/watch.sh
-go run ./cmd/maker dashboard
-go run ./cmd/maker dashboard --once --no-clear
+maker dashboard
+maker dashboard --once --no-clear
 ```
 
 ## Show Wake Records
@@ -37,15 +37,15 @@ go run ./cmd/maker dashboard --once --no-clear
 ```bash
 scripts/show-last.sh
 scripts/show-wake.sh WAKE_ID
-go run ./cmd/maker wakes
-go run ./cmd/maker show last
+maker wakes
+maker show last
 ```
 
 ## Inspect Or Reset World
 
 ```bash
 scripts/inspect-world.sh
-go run ./cmd/maker world
+maker world
 scripts/reset-world.sh
 ```
 

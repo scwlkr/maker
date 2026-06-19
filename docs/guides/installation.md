@@ -15,6 +15,7 @@ Maker currently runs from the repo.
 ```bash
 cp .env.example .env
 docker build -f Dockerfile.sandbox -t maker-finn-sandbox:latest .
+GOBIN="$HOME/.local/bin" go install ./cmd/maker
 ```
 
 The scripts are executable in the current repo. If that changes after copying
@@ -48,7 +49,8 @@ command environment.
 ## Verify
 
 ```bash
-go run ./cmd/maker doctor
+maker doctor
+maker dashboard --once --no-clear
 uvx pytest
 ```
 

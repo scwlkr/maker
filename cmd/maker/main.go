@@ -428,6 +428,8 @@ func cmdEvaluate(cfg Config, args []string, stdin io.Reader, out io.Writer) erro
 	if wake, err := loadWake(cfg, wakeID); err == nil {
 		if diff, ok := wake["diff_summary"].(map[string]any); ok && diff["changed"] == true {
 			worldChanged = true
+		} else if ok && diff["changed"] == false {
+			worldChanged = false
 		}
 	}
 	report := map[string]any{
@@ -495,36 +497,86 @@ func cmdDashboard(cfg Config, args []string, stdin io.Reader, out io.Writer) err
 
 func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses int, out io.Writer) error {
 	fmt.Fprintf(out, "Maker Live Dashboard  %s\n", time.Now().Format(time.RFC3339))
-	fmt.Fprintln(out, strings.Repeat("=", 72))
+	fmt.Fprintln(out, strings.Repeat("=", 88))
 	fmt.Fprintln(out)
 
+	events, eventsErr := readEvents(cfg, dashboardInput(cfg, stdinData))
+	wakeID := resolveWakeID(cfg, "current")
+	wake, wakeErr := loadWake(cfg, wakeID)
+	counts := map[string]any{}
+	recentResponses := []Event{}
+	worldChanged := false
+	if eventsErr == nil && wakeID != "" {
+		counts = countForWake(events, wakeID)
+		recentResponses = recentResponseEvents(events, wakeID, lastResponses)
+		worldChanged = worldChangedFromEvents(events, wakeID)
+	}
+	if wakeErr == nil {
+		if diff, ok := wake["diff_summary"].(map[string]any); ok {
+			worldChanged = boolValue(diff["changed"])
+		}
+	}
+
+	lock, _ := readJSONFile(filepath.Join(cfg.MakerPlace, "wake.lock"))
+	pidInfo := readPID(filepath.Join(cfg.MakerPlace, "controller.pid"))
+	containers := dockerLines("ps", "--format", "{{.Names}}\t{{.Status}}", "--filter", "label=maker.runtime=finn")
+	latest, _ := latestEvent(defaultEventsPath(cfg))
+
 	fmt.Fprintln(out, "STATUS")
-	fmt.Fprintln(out, strings.Repeat("-", 72))
-	var status bytes.Buffer
-	if err := cmdStatus(cfg, &status); err != nil {
-		fmt.Fprintf(out, "status error: %v\n", err)
+	fmt.Fprintln(out, strings.Repeat("-", 88))
+	fmt.Fprintf(out, "state:        %s\n", dashboardRuntimeState(lock, pidInfo, containers))
+	fmt.Fprintf(out, "maker place:  %s\n", cfg.MakerPlace)
+	fmt.Fprintf(out, "controller:   %s\n", pidInfoText(pidInfo))
+	if len(lock) == 0 {
+		fmt.Fprintln(out, "wake lock:    none")
 	} else {
-		fmt.Fprint(out, status.String())
+		fmt.Fprintf(out, "wake lock:    wake=%s pid=%v started=%s\n", str(lock["wake_id"]), lock["pid"], str(lock["started_at"]))
+	}
+	if len(containers) == 0 {
+		fmt.Fprintln(out, "sandbox:      none")
+	} else {
+		fmt.Fprintf(out, "sandbox:      %s\n", strings.Join(containers, "; "))
+	}
+	if latest != nil {
+		fmt.Fprintf(out, "latest event: %s %s wake=%s\n", str(latest["time"]), str(latest["type"]), str(latest["wake_id"]))
+	}
+	if eventsErr != nil {
+		fmt.Fprintf(out, "events:       unavailable: %v\n", eventsErr)
 	}
 	fmt.Fprintln(out)
 
 	fmt.Fprintln(out, "CURRENT WAKE")
-	fmt.Fprintln(out, strings.Repeat("-", 72))
-	var eval bytes.Buffer
-	if err := cmdEvaluate(cfg, []string{"--wake", "current", "--last-responses", strconv.Itoa(lastResponses)}, dashboardInput(cfg, stdinData), &eval); err != nil {
-		fmt.Fprintf(out, "evaluate error: %v\n", err)
+	fmt.Fprintln(out, strings.Repeat("-", 88))
+	if wakeErr != nil {
+		fmt.Fprintf(out, "wake:         unavailable: %v\n", wakeErr)
 	} else {
-		fmt.Fprint(out, eval.String())
+		printDashboardWake(out, wake, counts, worldChanged, len(recentResponses), len(lock) > 0)
+	}
+	fmt.Fprintln(out)
+
+	fmt.Fprintln(out, "WORK ACCOMPLISHED")
+	fmt.Fprintln(out, strings.Repeat("-", 88))
+	if wakeErr != nil {
+		fmt.Fprintln(out, "No wake summary is available yet.")
+	} else {
+		printDashboardWork(out, wake, counts, worldChanged)
+	}
+	fmt.Fprintln(out)
+
+	fmt.Fprintln(out, "RECENT WAKES")
+	fmt.Fprintln(out, strings.Repeat("-", 88))
+	if err := printDashboardRecentWakes(cfg, out); err != nil {
+		fmt.Fprintf(out, "recent wakes unavailable: %v\n", err)
 	}
 	fmt.Fprintln(out)
 
 	fmt.Fprintln(out, "RECENT EVENTS")
-	fmt.Fprintln(out, strings.Repeat("-", 72))
-	var events bytes.Buffer
-	if err := cmdEvents(cfg, []string{"--last", strconv.Itoa(eventCount)}, dashboardInput(cfg, stdinData), &events); err != nil {
+	fmt.Fprintln(out, strings.Repeat("-", 88))
+	var eventsOut bytes.Buffer
+	if err := cmdEvents(cfg, []string{"--last", strconv.Itoa(eventCount)}, dashboardInput(cfg, stdinData), &eventsOut); err != nil {
 		fmt.Fprintf(out, "events error: %v\n", err)
 	} else {
-		fmt.Fprint(out, events.String())
+		fmt.Fprint(out, eventsOut.String())
 	}
 	fmt.Fprintln(out)
 	return nil
@@ -535,6 +587,265 @@ func dashboardInput(cfg Config, stdinData []byte) io.Reader {
 		return bytes.NewReader(stdinData)
 	}
 	return strings.NewReader("")
+}
+
+func dashboardRuntimeState(lock map[string]any, pidInfo map[string]any, containers []string) string {
+	if len(lock) > 0 {
+		return "AWAKE - wake in progress"
+	}
+	if len(containers) > 0 {
+		return "ACTIVE - sandbox container visible"
+	}
+	if pidInfo["running"] == true {
+		return "WAITING - controller loop is running"
+	}
+	return "IDLE - no controller loop or wake is active"
+}
+
+func printDashboardWake(out io.Writer, wake map[string]any, counts map[string]any, worldChanged bool, recentResponses int, active bool) {
+	wakeID := str(wake["wake_id"])
+	start := str(wake["start_time"])
+	end := str(wake["end_time"])
+	fmt.Fprintf(out, "wake:         %s\n", wakeID)
+	fmt.Fprintf(out, "state:        %s\n", wakeStateText(active, end))
+	fmt.Fprintf(out, "model:        %s/%s\n", str(wake["model_provider"]), str(wake["model"]))
+	fmt.Fprintf(out, "started:      %s\n", start)
+	if end == "" {
+		fmt.Fprintln(out, "ended:        still running")
+	} else {
+		fmt.Fprintf(out, "ended:        %s\n", end)
+	}
+	fmt.Fprintf(out, "duration:     %s\n", durationText(start, end))
+	fmt.Fprintf(out, "end reason:   %s\n", fallbackText(str(wake["end_reason"]), "unknown"))
+	fmt.Fprintf(out, "assessment:   %s\n", dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), active))
+	fmt.Fprintf(out, "responses:    %d model, %d text, %d text-only loops\n", countInt(counts, "model_responses"), lenArray(wake["text_outputs"]), countInt(counts, "text_only"))
+	fmt.Fprintf(out, "tools:        %d total  shell/search/fetch/sleep=%d/%d/%d/%d\n",
+		lenArray(wake["tool_calls"]),
+		countInt(counts, "shell"),
+		countInt(counts, "search"),
+		countInt(counts, "fetch"),
+		countInt(counts, "sleep_or_finish"),
+	)
+	fmt.Fprintf(out, "world:        %s\n", worldChangedText(wake, worldChanged))
+	fmt.Fprintf(out, "health:       %d controller errors, %d wake errors, %d ignored required-tool responses\n",
+		countInt(counts, "controller_errors"),
+		lenArray(wake["errors"]),
+		countInt(counts, "required_ignored"),
+	)
+	fmt.Fprintf(out, "recent eval:  %d response-sized events considered\n", recentResponses)
+}
+
+func printDashboardWork(out io.Writer, wake map[string]any, counts map[string]any, worldChanged bool) {
+	fmt.Fprintf(out, "summary: %s\n", dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), false))
+	printDashboardWorld(out, wake, worldChanged)
+	printDashboardTools(out, wake)
+	printDashboardText(out, wake)
+	printDashboardErrors(out, wake)
+}
+
+func printDashboardWorld(out io.Writer, wake map[string]any, worldChanged bool) {
+	diff, _ := wake["diff_summary"].(map[string]any)
+	if len(diff) == 0 {
+		fmt.Fprintln(out, "world:   no diff summary recorded")
+		return
+	}
+	fmt.Fprintf(out, "world:   changed=%v entries=%d->%d diff_lines=%d\n",
+		worldChanged,
+		number(diff["before_entries"]),
+		number(diff["after_entries"]),
+		number(diff["diff_lines"]),
+	)
+	preview, _ := diff["diff_preview"].([]any)
+	if len(preview) == 0 {
+		return
+	}
+	fmt.Fprintln(out, "diff:")
+	for _, line := range takeLastAny(preview, 12) {
+		fmt.Fprintf(out, "  %s\n", compactOneLine(str(line), 140))
+	}
+	if boolValue(diff["diff_truncated"]) {
+		fmt.Fprintln(out, "  ... diff truncated")
+	}
+}
+
+func printDashboardTools(out io.Writer, wake map[string]any) {
+	toolCalls, _ := wake["tool_calls"].([]any)
+	if len(toolCalls) == 0 {
+		fmt.Fprintln(out, "tools:   none")
+		return
+	}
+	fmt.Fprintf(out, "tools:   %d call(s), showing latest %d\n", len(toolCalls), minInt(len(toolCalls), 6))
+	for _, item := range takeLastAny(toolCalls, 6) {
+		call, _ := item.(map[string]any)
+		fmt.Fprintf(out, "  #%v %-15s %s\n", call["index"], str(call["name"]), toolCallSummary(call))
+		if output := toolOutputPreview(call); output != "" {
+			fmt.Fprintf(out, "      output: %s\n", output)
+		}
+	}
+}
+
+func printDashboardText(out io.Writer, wake map[string]any) {
+	textOutputs, _ := wake["text_outputs"].([]any)
+	if len(textOutputs) == 0 {
+		fmt.Fprintln(out, "text:    none")
+		return
+	}
+	fmt.Fprintf(out, "text:    %d output(s), showing latest %d\n", len(textOutputs), minInt(len(textOutputs), 3))
+	for _, item := range takeLastAny(textOutputs, 3) {
+		text, _ := item.(map[string]any)
+		marker := ""
+		if boolValue(text["truncated"]) {
+			marker = " truncated"
+		}
+		fmt.Fprintf(out, "  - %d bytes%s: %s\n", number(text["bytes"]), marker, compactOneLine(str(text["preview"]), 180))
+	}
+}
+
+func printDashboardErrors(out io.Writer, wake map[string]any) {
+	errorsList, _ := wake["errors"].([]any)
+	if len(errorsList) == 0 {
+		fmt.Fprintln(out, "errors:  none")
+		return
+	}
+	fmt.Fprintf(out, "errors:  %d\n", len(errorsList))
+	for _, item := range takeLastAny(errorsList, 5) {
+		fmt.Fprintf(out, "  - %s\n", compactOneLine(str(item), 180))
+	}
+}
+
+func printDashboardRecentWakes(cfg Config, out io.Writer) error {
+	wakes, err := loadWakeSummaries(cfg)
+	if err != nil {
+		return err
+	}
+	if len(wakes) == 0 {
+		fmt.Fprintln(out, "no wakes found")
+		return nil
+	}
+	for _, wake := range takeLastWakeMaps(wakes, 6) {
+		diff, _ := wake["diff_summary"].(map[string]any)
+		changed := boolValue(diff["changed"])
+		fmt.Fprintf(out, "%s  %8s  %6s  tools=%-2d text=%-2d world=%v  %s\n",
+			str(wake["wake_id"]),
+			durationText(str(wake["start_time"]), str(wake["end_time"])),
+			fallbackText(str(wake["end_reason"]), "unknown"),
+			lenArray(wake["tool_calls"]),
+			lenArray(wake["text_outputs"]),
+			changed,
+			str(wake["model"]),
+		)
+	}
+	return nil
+}
+
+func takeLastWakeMaps(items []map[string]any, n int) []map[string]any {
+	if n <= 0 || len(items) <= n {
+		return items
+	}
+	return items[len(items)-n:]
+}
+
+func wakeStateText(active bool, end string) string {
+	if active && end == "" {
+		return "running now"
+	}
+	if active {
+		return "wake lock present"
+	}
+	return "complete"
+}
+
+func dashboardAssessment(counts map[string]any, worldChanged bool, wakeErrors int, active bool) string {
+	if active {
+		return "Finn is awake now; watch tool calls and world changes update here."
+	}
+	if wakeErrors > 0 || countInt(counts, "controller_errors") > 0 {
+		return "attention needed: errors were recorded during the wake"
+	}
+	if worldChanged {
+		return "productive wake: Finn changed the world listing"
+	}
+	if countInt(counts, "tool_calls") > 0 {
+		return "tool activity observed; no world listing changes"
+	}
+	if countInt(counts, "model_responses") > 0 || countInt(counts, "model_text") > 0 {
+		return "thinking/talking only; no tool work recorded"
+	}
+	return "no wake activity recorded yet"
+}
+
+func worldChangedText(wake map[string]any, worldChanged bool) string {
+	diff, _ := wake["diff_summary"].(map[string]any)
+	if len(diff) == 0 {
+		return "unknown - no diff summary recorded"
+	}
+	return fmt.Sprintf("changed=%v, entries=%d->%d, diff_lines=%d",
+		worldChanged,
+		number(diff["before_entries"]),
+		number(diff["after_entries"]),
+		number(diff["diff_lines"]),
+	)
+}
+
+func toolCallSummary(call map[string]any) string {
+	parts := []string{}
+	result, _ := call["result"].(map[string]any)
+	if len(result) > 0 {
+		parts = append(parts, fmt.Sprintf("ok=%v", boolValue(result["ok"])))
+		if elapsed := numberOrString(result["elapsed_seconds"]); elapsed != "" {
+			parts = append(parts, "elapsed="+elapsed+"s")
+		}
+		if exit := numberOrString(result["exit_code"]); exit != "" {
+			parts = append(parts, "exit="+exit)
+		}
+	}
+	args := compactOneLine(compactJSON(call["arguments"]), 150)
+	if args != "" && args != "null" {
+		parts = append(parts, "args="+args)
+	}
+	return strings.Join(parts, " ")
+}
+
+func toolOutputPreview(call map[string]any) string {
+	result, _ := call["result"].(map[string]any)
+	if len(result) == 0 {
+		return ""
+	}
+	for _, key := range []string{"stdout", "stderr"} {
+		payload, _ := result[key].(map[string]any)
+		preview := compactOneLine(str(payload["preview"]), 160)
+		if preview != "" {
+			return preview
+		}
+	}
+	if errText := compactOneLine(str(result["error"]), 160); errText != "" {
+		return errText
+	}
+	return ""
+}
+
+func durationText(start string, end string) string {
+	if start == "" {
+		return "unknown"
+	}
+	startTime, err := time.Parse(time.RFC3339Nano, start)
+	if err != nil {
+		return "unknown"
+	}
+	var endTime time.Time
+	if end == "" {
+		endTime = time.Now().UTC()
+	} else {
+		endTime, err = time.Parse(time.RFC3339Nano, end)
+		if err != nil {
+			return "unknown"
+		}
+	}
+	duration := endTime.Sub(startTime)
+	if duration < 0 {
+		duration = 0
+	}
+	return duration.Round(time.Second).String()
 }
 
 func readDotenv(path string) map[string]string {
@@ -1168,6 +1479,55 @@ func number(value any) int {
 	default:
 		return 0
 	}
+}
+
+func countInt(values map[string]any, key string) int {
+	if values == nil {
+		return 0
+	}
+	return number(values[key])
+}
+
+func boolValue(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		return strings.EqualFold(typed, "true")
+	default:
+		return false
+	}
+}
+
+func numberOrString(value any) string {
+	switch typed := value.(type) {
+	case nil:
+		return ""
+	case int:
+		return strconv.Itoa(typed)
+	case float64:
+		return strconv.FormatFloat(typed, 'f', -1, 64)
+	case json.Number:
+		return typed.String()
+	case string:
+		return typed
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
+func fallbackText(value string, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func minInt(left int, right int) int {
+	if left < right {
+		return left
+	}
+	return right
 }
 
 func inc(values map[string]any, key string) {

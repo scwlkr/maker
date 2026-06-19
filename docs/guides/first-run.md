@@ -8,6 +8,7 @@ world volume without requiring OpenRouter or Ollama.
 ```bash
 cp .env.example .env
 docker build -f Dockerfile.sandbox -t maker-finn-sandbox:latest .
+GOBIN="$HOME/.local/bin" go install ./cmd/maker
 MOCK_MODEL=1 scripts/run-once.sh
 ```
 
@@ -21,10 +22,10 @@ Expected result:
 ## Inspect The Result
 
 ```bash
-go run ./cmd/maker status
-go run ./cmd/maker show last
-go run ./cmd/maker events --last 20
-go run ./cmd/maker world
+maker status
+maker show last
+maker events --last 20
+maker world
 ```
 
 You can also inspect with scripts:

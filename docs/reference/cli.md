@@ -8,11 +8,11 @@ Run directly:
 go run ./cmd/maker COMMAND
 ```
 
-Build:
+Install a local `maker` command:
 
 ```bash
-go build -o bin/maker ./cmd/maker
-bin/maker COMMAND
+GOBIN="$HOME/.local/bin" go install ./cmd/maker
+maker COMMAND
 ```
 
 ## Global Flags
@@ -29,28 +29,29 @@ bin/maker COMMAND
 ## Commands
 
 ```bash
-go run ./cmd/maker status
-go run ./cmd/maker events --last 20
-go run ./cmd/maker wakes
-go run ./cmd/maker show [WAKE_ID|last]
-go run ./cmd/maker world --max-depth 5
-go run ./cmd/maker doctor
-go run ./cmd/maker probe-model --provider ollama --model llama3.1:8b
-go run ./cmd/maker count-model-responses --wake current
-go run ./cmd/maker evaluate --wake current --last-responses 10
-go run ./cmd/maker dashboard --interval 10 --events 8 --last-responses 10
+maker status
+maker events --last 20
+maker wakes
+maker show [WAKE_ID|last]
+maker world --max-depth 5
+maker doctor
+maker probe-model --provider ollama --model llama3.1:8b
+maker count-model-responses --wake current
+maker evaluate --wake current --last-responses 10
+maker dashboard --interval 10 --events 8 --last-responses 10
 ```
 
-`dashboard` also accepts `--once` and `--no-clear`.
+`dashboard` renders runtime state, the current or latest wake, work accomplished,
+recent wakes, and recent events. It also accepts `--once` and `--no-clear`.
 
 ## Input And Output Routing
 
 Examples:
 
 ```bash
-go run ./cmd/maker --output /tmp/maker-events.txt events --last 50
-go run ./cmd/maker --output /tmp/maker-dashboard.txt dashboard --once --no-clear
-cat maker-place/events.jsonl | go run ./cmd/maker --input - evaluate --wake current --last-responses 10
+maker --output /tmp/maker-events.txt events --last 50
+maker --output /tmp/maker-dashboard.txt dashboard --once --no-clear
+cat maker-place/events.jsonl | maker --input - evaluate --wake current --last-responses 10
 ```
 
 `events`, `count-model-responses`, `evaluate`, and `dashboard` can use stdin

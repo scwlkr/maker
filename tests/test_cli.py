@@ -47,8 +47,29 @@ def write_cli_fixture(root: Path) -> tuple[Path, str]:
                 "end_reason": "sleep_or_finish",
                 "model_responses": [{"has_tool_calls": False}],
                 "text_outputs": [{"preview": "hello"}],
-                "tool_calls": [{"index": 1, "name": "shell", "arguments": {"command": "true"}}],
+                "tool_calls": [
+                    {
+                        "index": 1,
+                        "name": "shell",
+                        "arguments": {"command": "true"},
+                        "result": {
+                            "ok": True,
+                            "exit_code": 0,
+                            "elapsed_seconds": 0.01,
+                            "stdout": {"preview": "ok"},
+                            "stderr": {"preview": ""},
+                        },
+                    }
+                ],
                 "errors": [],
+                "diff_summary": {
+                    "before_entries": 1,
+                    "after_entries": 1,
+                    "changed": False,
+                    "diff_lines": 0,
+                    "diff_preview": [],
+                    "diff_truncated": False,
+                },
             }
         )
     )
@@ -125,8 +146,13 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
     assert "Maker Live Dashboard" in dashboard.stdout
     assert "STATUS" in dashboard.stdout
     assert "CURRENT WAKE" in dashboard.stdout
+    assert "WORK ACCOMPLISHED" in dashboard.stdout
+    assert "RECENT WAKES" in dashboard.stdout
     assert "RECENT EVENTS" in dashboard.stdout
     assert wake_id in dashboard.stdout
+    assert "tool activity observed; no world listing changes" in dashboard.stdout
+    assert "world:   changed=false" in dashboard.stdout
+    assert "tools:   1 call(s)" in dashboard.stdout
 
     out_path = tmp_path / "dashboard.out"
     run_maker(
@@ -136,6 +162,27 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
     written = out_path.read_text()
     assert "Maker Live Dashboard" in written
     assert "wake_end" in written
+
+
+def test_go_cli_evaluate_prefers_wake_diff_over_snapshot_presence(repo_root: Path, tmp_path: Path) -> None:
+    maker, wake_id = write_cli_fixture(tmp_path)
+    with (maker / "events.jsonl").open("a") as f:
+        f.write(
+            json.dumps(
+                {
+                    "time": "2026-01-01T00:00:07Z",
+                    "type": "world_snapshot_written",
+                    "wake_id": wake_id,
+                    "label": "after",
+                    "summary": {"bytes": 99},
+                }
+            )
+            + "\n"
+        )
+
+    evaluate = run_maker(repo_root, ["--maker-place", str(maker), "evaluate", "--wake", wake_id])
+
+    assert "world changed: false" in evaluate.stdout
 
 
 def test_go_cli_doctor_and_probe_cover_ollama(repo_root: Path, tmp_path: Path) -> None:

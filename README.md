@@ -28,10 +28,11 @@ unverified behavior.
 ```bash
 cp .env.example .env
 docker build -f Dockerfile.sandbox -t maker-finn-sandbox:latest .
+GOBIN="$HOME/.local/bin" go install ./cmd/maker
 MOCK_MODEL=1 scripts/run-once.sh
-go run ./cmd/maker status
-go run ./cmd/maker show last
-go run ./cmd/maker world
+maker status
+maker show last
+maker world
 ```
 
 The controller can build the sandbox image automatically if it is missing. The
@@ -78,7 +79,7 @@ scripts/watch.sh
 scripts/show-last.sh
 scripts/show-wake.sh WAKE_ID
 scripts/inspect-world.sh
-go run ./cmd/maker dashboard --once --no-clear
+maker dashboard --once --no-clear
 ```
 
 `/world` is a Docker named volume, not a repo directory.
@@ -88,21 +89,21 @@ go run ./cmd/maker dashboard --once --no-clear
 The Go CLI is the main debugging surface:
 
 ```bash
-go run ./cmd/maker status
-go run ./cmd/maker events --last 20
-go run ./cmd/maker wakes
-go run ./cmd/maker show last
-go run ./cmd/maker world
-go run ./cmd/maker doctor
-go run ./cmd/maker evaluate --wake current --last-responses 10
-go run ./cmd/maker dashboard
+maker status
+maker events --last 20
+maker wakes
+maker show last
+maker world
+maker doctor
+maker evaluate --wake current --last-responses 10
+maker dashboard
 ```
 
-Build a local binary:
+Install a local binary into `~/.local/bin`:
 
 ```bash
-go build -o bin/maker ./cmd/maker
-bin/maker status
+GOBIN="$HOME/.local/bin" go install ./cmd/maker
+maker dashboard
 ```
 
 See [CLI reference](docs/reference/cli.md) for global flags, command flags, JSON
