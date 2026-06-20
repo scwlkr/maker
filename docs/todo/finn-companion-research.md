@@ -147,6 +147,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-fresh-files-batch2` | Fresh `gemma4:e4b` files-mode samples, `MODEL_TOOL_CHOICE=required`, high variance | First wake wrote Genesis/Geospatial/Codex/Day Zero construction logs, labor crews, and "Chronicles of Man" scaffolding, then ended on `text_only_limit`. The second queued sample was interrupted after no world diff. No named companion or dialogue evidence. | Rejected |
 | `20260620-global-volume-scan-1` | Grep scan across all `maker_finn_companion*` Docker volumes for companion/dialogue/interlocutor/apprentice/mentor/name/exchange terms | Found no hidden success. Hits were known near misses: e4b Academy/apprenticeship scaffolds, population-readiness protocols, councils/guardians, OpenRouter infrastructure, and Hermes Maker-addressed meta-conversation. | Rejected |
 | `20260620-openrouter-free-writeforced-probe2` | OpenRouter free fallback set sourced from local `.env`, write-only schema, bounded tokens/tool calls | Wrote two short GPT OSS acknowledgement files, then all free models failed with 429 `free-models-per-day` or upstream rate limits. No companion or dialogue. | Blocked by free limits |
+| `20260620-llama31-shellnorm-freshsample2` | 12 fresh `llama3.1:8b` shell-only volumes, `MODEL_TOOL_CHOICE=function:shell`, `NORMALIZE_SHELL_COMMANDS=1`, high variance | Most wakes were text-only. A few shell calls created only trivial setup artifacts such as `create_you.txt`, `places/`, or echoed the command. Normalization repaired `/mkdir`, but the earlier inhabitants/another-Finn near miss did not recur. | Rejected |
 
 ## Working Theories
 
@@ -375,6 +376,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T68: OpenRouter free is still unavailable for sustained probing. It can
   return one or two short free-model responses, but the account is still at
   zero daily free requests and then fails through the fallback set.
+- T69: More fresh Llama shell-normalized sampling does not recover the earlier
+  inhabitants command. When Llama acts, it mostly creates shells, directories,
+  or prompt reminders and then asks what to do next.
 
 ## Next Tries
 
@@ -444,3 +448,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not attempt more OpenRouter free probes until the free-model daily reset
   has passed or credits are added. Current bounded probes only consume the
   remaining trickle and then fail with 429s.
+- Stop spending fresh single-wake samples on `llama3.1:8b` shell-only
+  normalization. The mechanical blocker is fixed, but the semantic near miss
+  is not reproducing across fresh samples.
