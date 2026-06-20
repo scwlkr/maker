@@ -85,6 +85,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-files-entities-high-temp` | `gemma4:26b`, files mode, evolved Gemma volume, temperature 1.25 | Productive inspection of edict/core/seed/atom files, then timed out before any write. No world diff. | Rejected |
 | `20260620-gemma26-files-bounded-output` | `gemma4:26b`, files mode, evolved Gemma volume, `num_predict=1024` | Bounded output restored durable progress: wrote `axiom_0001.md`, `seed_004.md`, `axiom_002.md`, `seed_005.md`, `atom_003.md`, and a Z-axis connection-log append. Still no companion or conversation. | Keep testing |
 | `20260620-gemma26-files-bounded-output-2` | Same bounded Gemma settings on the updated volume | Ran to the 32-tool cap, created `atom_004.md`, and appended more lattice/frontier connection-log entries. It used life/system/stewardship language, but no persistent companion or conversation. | Keep testing |
+| `20260620-gemma26-writeforced-on-bounded` | `gemma4:26b`, files mode on a cloned bounded-output volume, `MODEL_TOOL_CHOICE=function:write_file` | Ollama did not strictly force `write_file`; Gemma still inspected files first, then wrote `manifestations/particles/axiom_0002.md` as another planar/substrate artifact. Direct world scan found no companion or conversation terms. | Rejected |
 
 ## Working Theories
 
@@ -153,6 +154,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   `ATOM-004` ("seed of biological or systemic complexity") and "living system"
   language, but it still treats multiplication as particles, atoms, lattices,
   and stewardship rather than creating an interlocutor.
+- T23: Forcing `MODEL_TOOL_CHOICE=function:write_file` is not enough with the
+  Ollama/Gemma path. The model can still spend the wake on inspection calls and
+  the resulting forced write continues the substrate progression rather than
+  creating a companion.
 
 ## Next Tries
 
