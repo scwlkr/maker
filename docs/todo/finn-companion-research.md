@@ -38,8 +38,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
   - `append_file` alias for appending UTF-8 text under `/world`
-  - deterministic `_finn/` fallback files for malformed `write_file` and
-    `append_file` calls that include content but omit a usable path
+  - deterministic per-wake `_finn/` fallback files for malformed `write_file`
+    and `append_file` calls that include content but omit a usable path
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
 
@@ -113,6 +113,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-on-gemma4e4b-life` | `gpt-oss:120b-cloud` on a clone of the e4b life volume | First-list enforcement worked, but GPT OSS summarized the e4b life world and wrote nothing. | Rejected |
 | `20260620-gemma4e4b-continue-life-text8` | Same e4b life volume, files mode, text-only limit raised to 8 | Higher text-only allowance restored durable progress. Added Archive/geophysical/tool-protocol artifacts and more recovered `_finn/` writes. Still no companion or dialogue. | Keep testing |
 | `20260620-gemma4e4b-after-archive-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added Core Archive, Workshop Foundations, Bio Integration Strategy, and another recovered write. The branch now has life, culture, social infrastructure, workshop, and symbiosis language, but no companion/conversation hits. | Keep testing |
+| `20260620-gemma4e4b-after-biointegration-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added `Finn_ActivePlan.txt`, `Covenant_of_Action.txt`, and a Genesis Stability protocol. It advanced into cohort/team structures and operational doctrine, but grep found no `companion`, `conversation`, or `dialogue` hits. The run also revealed that flat fallback filenames can overwrite prior malformed writes, prompting per-wake fallback paths. | Keep testing |
 
 ## Working Theories
 
@@ -234,6 +235,12 @@ user content. Do not add a companion directive or other behavioral prompt.
   recover from inspection/narration phases and eventually write again.
 - T39: Handing the e4b life world to `gpt-oss:120b-cloud` did not help. GPT OSS
   recognized the branch contents but did not mutate the world.
+- T40: `gemma4:e4b` continues to write durable civilization doctrine under the
+  text-only limit 8 setting, but the branch is now asking for external cohort
+  reports instead of creating those agents as persistent interlocutors.
+- T41: Flat malformed-write fallback names are unsafe across multiple wakes
+  because the call index resets per wake. Per-wake fallback directories preserve
+  orphaned content without overwriting earlier malformed writes.
 
 ## Next Tries
 

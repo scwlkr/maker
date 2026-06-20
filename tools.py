@@ -308,8 +308,15 @@ def safe_world_relative_path(value: Any, *, allow_current: bool = False) -> str:
     return str(path)
 
 
-def default_write_path(tool_name: str, call_index: int) -> str:
-    return f"_finn/{tool_name}_{call_index:04d}.md"
+def safe_default_path_part(value: str, fallback: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in value.strip())
+    return safe or fallback
+
+
+def default_write_path(tool_name: str, wake_id: str, call_index: int) -> str:
+    safe_tool_name = safe_default_path_part(tool_name, "tool")
+    safe_wake_id = safe_default_path_part(wake_id, "wake")
+    return f"_finn/{safe_wake_id}/{safe_tool_name}_{call_index:04d}.md"
 
 
 class ToolRunner:
@@ -384,7 +391,7 @@ class ToolRunner:
             path = safe_world_relative_path(args.get("path", ""))
         except ValueError as exc:
             if str(exc) == "path is required" and content:
-                path = default_write_path(tool_name, call_index)
+                path = default_write_path(tool_name, self.wake_id, call_index)
                 self.maker_place.append_event(
                     "write_file_path_defaulted",
                     self.wake_id,

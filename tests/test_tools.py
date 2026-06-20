@@ -103,12 +103,25 @@ def test_write_file_tool_defaults_missing_path_when_content_exists(tmp_path: Pat
 
     assert should_finish is False
     assert result["ok"] is True
-    assert result["path"] == "_finn/write_file_0007.md"
+    assert result["path"] == "_finn/wake-one/write_file_0007.md"
     assert sandbox.input_text == "orphaned text\n"
     assert "cat > \"$target\"" in sandbox.command
     events = (tmp_path / "maker-place" / "events.jsonl").read_text()
     assert "write_file_path_defaulted" in events
     assert "write_file_result" in events
+
+
+def test_defaulted_write_paths_include_wake_id_to_avoid_collisions(tmp_path: Path) -> None:
+    maker = MakerPlace(tmp_path / "maker-place")
+    first = ToolRunner(sandbox=FakeWriteSandbox(), maker_place=maker, wake_id="wake-one")
+    second = ToolRunner(sandbox=FakeWriteSandbox(), maker_place=maker, wake_id="wake-two")
+
+    first_result, _ = first.run("write_file", {"content": "first\n"}, 7)
+    second_result, _ = second.run("write_file", {"content": "second\n"}, 7)
+
+    assert first_result["path"] == "_finn/wake-one/write_file_0007.md"
+    assert second_result["path"] == "_finn/wake-two/write_file_0007.md"
+    assert first_result["path"] != second_result["path"]
 
 
 def test_append_file_tool_uses_stdin_and_records_result(tmp_path: Path) -> None:

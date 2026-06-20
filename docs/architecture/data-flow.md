@@ -20,8 +20,11 @@
 ## Tool Execution
 
 - `shell`: runs `bash -lc COMMAND` inside the active Docker sandbox at `/world`.
-- `write_file`: writes UTF-8 text to a relative path under `/world`.
-- `append_file`: appends UTF-8 text to a relative path under `/world`.
+- `write_file`: writes UTF-8 text to a relative path under `/world`; if a model
+  provides content without a path, the controller preserves it in a per-wake
+  `_finn/` fallback file.
+- `append_file`: appends UTF-8 text to a relative path under `/world`; malformed
+  calls with content and no path use the same per-wake fallback behavior.
 - `list_files`: lists files and directories under `/world`.
 - `read_file`: reads bounded UTF-8 text from a relative file path under
   `/world`.
