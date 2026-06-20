@@ -532,6 +532,11 @@ def promote_text_tool_call(
         try:
             parsed = ast.literal_eval(stripped)
         except (SyntaxError, ValueError):
+            try:
+                parsed = literal_eval_with_string_concat(stripped)
+            except (SyntaxError, ValueError):
+                return None
+        except MemoryError:
             return None
     if not isinstance(parsed, dict):
         return None
@@ -556,6 +561,30 @@ def promote_text_tool_call(
         "tool_name": name,
         "content": summarize_text(stripped, 1000),
     }
+
+
+def literal_eval_with_string_concat(source: str) -> Any:
+    expression = ast.parse(source, mode="eval")
+
+    def convert(node: ast.AST) -> Any:
+        if isinstance(node, ast.Expression):
+            return convert(node.body)
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Dict):
+            return {convert(key): convert(value) for key, value in zip(node.keys, node.values)}
+        if isinstance(node, ast.List):
+            return [convert(item) for item in node.elts]
+        if isinstance(node, ast.Tuple):
+            return tuple(convert(item) for item in node.elts)
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left = convert(node.left)
+            right = convert(node.right)
+            if isinstance(left, str) and isinstance(right, str):
+                return left + right
+        raise ValueError(f"unsupported literal expression: {node.__class__.__name__}")
+
+    return convert(expression)
 
 
 def tool_names_from_schemas(schemas: list[dict[str, Any]]) -> set[str]:

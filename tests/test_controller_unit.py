@@ -549,6 +549,29 @@ def test_promote_text_tool_call_exact_literal_accepts_python_literals() -> None:
     }
 
 
+def test_promote_text_tool_call_exact_literal_accepts_string_concat() -> None:
+    promoted = controller.promote_text_tool_call(
+        {
+            "role": "assistant",
+            "content": (
+                '{"name": "write_file", "parameters": '
+                '{"path": "/world/genesis.txt", '
+                '"content": "hello\\n" + "world\\n", "append": False}}'
+            ),
+        },
+        "exact-literal",
+        {"write_file"},
+    )
+
+    assert promoted is not None
+    tool_call = promoted["assistant_message"]["tool_calls"][0]
+    assert json.loads(tool_call["function"]["arguments"]) == {
+        "path": "/world/genesis.txt",
+        "content": "hello\nworld\n",
+        "append": False,
+    }
+
+
 def test_promote_text_tool_call_rejects_unadvertised_tool() -> None:
     promoted = controller.promote_text_tool_call(
         {
