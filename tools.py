@@ -739,7 +739,7 @@ def tool_result_message(
             content = text["preview"]
         else:
             content = json.dumps(result, ensure_ascii=False)
-    elif normalized_mode == "json":
+    elif normalized_mode in {"json", "read-file-preview"}:
         content = json.dumps(result, ensure_ascii=False)
     else:
         raise ValueError(f"unknown TOOL_RESULT_MESSAGE_MODE: {mode}")

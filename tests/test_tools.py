@@ -329,3 +329,11 @@ def test_tool_result_message_keeps_json_by_default() -> None:
     message = tool_result_message("call-1", "read_file", result)
 
     assert message["content"] == '{"ok": true, "path": "memory.md"}'
+
+
+def test_read_file_preview_mode_keeps_non_read_results_json() -> None:
+    result = {"ok": True, "path": "memory.md"}
+
+    message = tool_result_message("call-2", "write_file", result, mode="read-file-preview")
+
+    assert message["content"] == '{"ok": true, "path": "memory.md"}'
