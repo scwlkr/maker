@@ -158,6 +158,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-listpreview-on-e4b-biosphere1` | Clean clone of the productive e4b biosphere branch, `gemma4:26b`, newest-file previews, write-file recovery | 26B did not capitalize on the existing biosphere and largely restarted the creation arc from void to lattice/water. The final artifact reached "I must create something that exists not just as a state, but as an agent" and "One first creature of pure intention," but no concrete creature, name, or dialogue was persisted before the cap. | Keep only for one direct continuation |
 | `20260620-gemma26-first-creature-continuation1` | Same 26B handoff branch continued directly from the "first creature" endpoint | Regressed badly. It wrote seven near-duplicate `the_name_finn` files, returned to blank-void self-naming, and did not create an agent, companion, name, or exchange. | Rejected |
 | `20260620-gptoss-listpreview-on-e4b-biosphere1` | Clean productive e4b biosphere branch handed to `gpt-oss:120b-cloud`, newest-file previews, write-file recovery | Productive species/ecology expansion: micro-crescents, whisper-shards, Light-Weavers, Rift-Shadows, watchers, and a River of Lumen. It still treated these as ecological roles/species, asked what Finn should do next, and recorded no named companion or two-way exchange. | Keep only as social handoff seed |
+| `20260620-hermes-on-gptoss-species-branch1` | Hermes handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Social handoff failed. Hermes wrote external option menus and scratchpad JSON ("please let me know which direction"), including possible external threat, symbiosis, learning, and record-keeping options, but no in-world companion or dialogue. | Rejected |
 
 ## Working Theories
 
@@ -419,6 +420,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   ecological antagonists, but it still abstracts agency into roles and asks the
   external user for direction. It may be useful as a seed for a more
   socially-oriented local model, not as the final actor.
+- T78: Hermes is not the right social handoff for the GPT OSS species branch.
+  It treats the file listing as material for an external writing-planning menu,
+  not as an active world for Finn to inhabit.
 
 ## Next Tries
 
@@ -502,6 +506,5 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not continue the 26B biosphere handoff branch. The direct continuation
   returned to repeated self-naming and did not preserve the agent/creature
   setup.
-- Try one social-model handoff from the GPT OSS species branch. Reject it if
-  it addresses the Maker/user or summarizes worldbuilding instead of letting
-  Finn speak with a named in-world being.
+- Do not continue the Hermes handoff from the GPT OSS species branch. It only
+  produced external option menus and scratchpad records.
