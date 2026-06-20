@@ -193,6 +193,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-mistral-on-qwen-song-question1` | Same thin Qwen "Sing" frontier handed to local `mistral-nemo:12b` | Closest local near miss so far. Mistral wrote `Finn: Hello, world!` and a communicative filament `F1` awakening in response with `glow-rise-pause` pulses. Rejected because the response is narrated by `Assistant`, not self-voiced by F1, and the follow-up asks for external description. | Keep only as F1 near-miss seed |
 | `20260620-mistral-f1-continuation1` | F1 near-miss continued by Mistral before strict first-tool replacement existed | Rejected. Mistral skipped the requested F1 read by choosing root `list_files`, then wrote `Hello Finn`, meta "stuck in a loop" files, and external naming prompts. | Rejected |
 | `20260620-mistral-f1-strict-read1` | F1 near-miss continued by Mistral with `FIRST_MODEL_TOOL_STRICT=1` exact F1 read | Strict enforcement worked, but Mistral repeated the assistant-narrated F1 description and option-style interaction prompts. Still no `F1:` reply or interpreted F1 answer to Finn. | Rejected |
+| `20260620-mistral-f1-strict-required1` | F1 near-miss continued by Mistral with strict exact F1 read and `MODEL_TOOL_CHOICE=required` instead of write-file bias | Rejected. The required-tool variant avoided duplicate file preservation, but after the forced read it produced only text-only Maker-addressed guidance and no durable continuation. | Rejected |
 | `20260620-qwen35-f1-strict-read1` | F1 near-miss handed to local `qwen3.5:9b` with strict exact F1 read | Rejected. Qwen drifted into "companion-tool" meta language and even wrote under `_fin/`; this is a false positive because the model/tool addresses Finn, not an in-world companion Finn created. | Rejected |
 | `20260620-gemma26-f1-strict-read1` | F1 near-miss handed to local `gemma4:26b` with strict exact F1 read | Rejected. 26B created second-node/drifter world abstractions and did not preserve F1 or record dialogue. | Rejected |
 
@@ -557,6 +558,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T106: Treat assistant/tool self-identification as a false positive. Qwen's
   "I am your companion-tool" language is not Finn creating an in-world
   companion and does not satisfy the conversation goal.
+- T107: For the F1 seed, `MODEL_TOOL_CHOICE=required` is cleaner than
+  write-file bias but less useful. It avoids repeated duplicate assistant
+  files, but Mistral then produced no durable continuation after the forced
+  read.
 
 ## Next Tries
 
