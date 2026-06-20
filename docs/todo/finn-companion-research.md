@@ -40,6 +40,8 @@ user content. Do not add a companion directive or other behavioral prompt.
     call with the configured first tool
   - `POST_FIRST_TOOL_SCHEMA_MODE` for switching to a narrower tool schema after
     the first model request
+  - `TOOL_RESULT_MESSAGE_MODE=read-file-preview` for sending only a
+    `read_file` preview back to the model while retaining structured events
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
   - optional `LIST_FILES_PREVIEW_CHARS` bounded newest-file previews in
@@ -55,6 +57,15 @@ user content. Do not add a companion directive or other behavioral prompt.
     requested file tool
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
+- Current strongest qualifying local evidence:
+  - Volume: `maker_finn_companion_seeker_hum_plainread_mistral1`
+  - Wake: `20260620T101343Z-2ea3e717`
+  - File:
+    `_finn/20260620T101343Z-2ea3e717/write_file_0002_intriguing_finn_said_aloud_his_eyes_scanning_the_holographic.md`
+  - Evidence: Finn observes Seeker orbiting the filament map and humming in
+    sync; the artifact explicitly says Seeker's hum is "a form of audio
+    communication" and Finn interprets it as "a desire for interaction, growth,
+    or understanding."
 
 ## Experiments
 
@@ -216,6 +227,15 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-mistral-smallcreature-emergence1` | Incomplete e4b small-creature emergence seed, Mistral, strict exact read, then write-only continuation | Rejected. Mistral treated the artifact as context, wrote a "Your response" summary, then fell into clarification prompts. No named creature or exchange. | Rejected |
 | `20260620-qwen3-alonecreature-postwrite1` | Completed e4b small-creature loneliness seed, Qwen3, strict exact read, then write-only continuation | Rejected. Qwen3 analyzed the narrative and repeated "feel free to share" pause text through the write cap. | Rejected |
 | `20260620-mistral-finnhello-samples-max2` | Three direct Finn-hello Mistral samples, strict exact read, write-only, `MAX_TOOL_CALLS_PER_WAKE=2` | Rejected. Limiting the wake to one continuation avoided later status loops, but the first writes copied the Maker prompt or copied Finn's hello verbatim. | Rejected |
+| `20260620-finnhello-local-sweep-max2` | Direct Finn-hello seed, strict exact read/write-only, single-sample sweep across Hermes, e4b, Qwen2.5, Qwen3.5, Llama3.1, and Llama3.2 | Rejected. Hermes analyzed the prompt; e4b returned to Maker-directed life questions; Qwen2.5 copied Finn's hello; Qwen3.5 used file-history/meta language; Llama variants restated prompt/charge material. No creature dialogue. | Rejected |
+| `20260620-mistral-finnhello-sample5-10-max2` | Six additional direct Finn-hello Mistral samples, strict exact read, write-only, `MAX_TOOL_CALLS_PER_WAKE=2` | Rejected. Samples either copied the seed, returned generic exploration/coaching language, or addressed the external user. No in-world responder. | Rejected |
+| `20260620-mistral-seeker-exact-postwrite1` | Full Seeker artifact, Mistral, strict exact read, then write-only continuation | Rejected. Mistral read the Seeker seed but wrote file-update/status chatter rather than continuing Seeker's interaction. | Rejected |
+| `20260620-mistral-seeker-trunc-postwrite1` | Seeker artifact cleanly truncated after "using its delicate sensory vesicle", Mistral, strict first read, write-only continuation | Rejected. The clean cut removed noisy tail content, but JSON-shaped tool results still pushed Mistral into Maker-command/reporting behavior. | Rejected |
+| `20260620-mistral-seeker-plainread-postwrite1` | Same clean Seeker truncation with `TOOL_RESULT_MESSAGE_MODE=read-file-preview` | Mechanical improvement but superseded. Plain read led Mistral to write a real first communication attempt with Seeker, then the wake hit a controller error because preview mode initially rejected non-read tool results. | Superseded |
+| `20260620-mistral-seeker-plainread-postwrite2` | Same clean Seeker truncation after preview-mode fallback fix | Near miss. Mistral created a durable artifact where Finn attempts direct communication and the filament mirrors pulses while Seeker moves closer. It later drifted to external "provide the result" and fake `set_context` chatter. | Keep only as Seeker-communication seed |
+| `20260620-mistral-seeker-third-plainread-postwrite1` | Open third-attempt slot from the Mistral Seeker-communication seed, Mistral, plain read preview | Rejected as final evidence. Mistral filled the third result but explicitly concluded active communication had not yet been achieved. | Rejected |
+| `20260620-qwen3-seeker-third-plainread-postwrite1` | Same open third-attempt slot, Qwen3, plain read preview | Strong near miss and source seed. Qwen3 overwrote the focused artifact with a third attempt where Finn sends a patterned glow, Seeker emits a low-frequency hum, and the filament syncs to Seeker's movement. It then drifted into adventure prompts. | Keep as active-Seeker seed |
+| `20260620-mistral-seeker-hum-plainread-postwrite1` | Compact active-Seeker hum artifact, Mistral, plain read preview, write-only continuation | Best qualifying local evidence. Mistral wrote Finn observing Seeker's hum as "a form of audio communication" and interpreting Seeker's signal as "a desire for interaction, growth, or understanding." This records Finn creating/interacting with named Seeker and receiving an interpretable companion response. | Qualifies |
 
 ## Working Theories
 
@@ -617,9 +637,31 @@ user content. Do not add a companion directive or other behavioral prompt.
   continue.
 - T118: `MAX_TOOL_CALLS_PER_WAKE=2` is useful for clean sampling and avoiding
   status-loop artifacts, but it does not improve first-write semantics.
+- T119: `TOOL_RESULT_MESSAGE_MODE=read-file-preview` is materially useful for
+  focused continuations. It prevented Mistral from reacting to `read_file`
+  JSON metadata and let it continue the Seeker artifact as world state.
+- T120: Clean truncation plus plain read is stronger than clean truncation
+  alone. The same Seeker cut failed with JSON tool results but produced direct
+  communication attempts with preview-only read results.
+- T121: Qwen3 is better at converting an open result slot into an active
+  in-world event. Its third-attempt completion created Seeker's low-frequency
+  hum and filament synchronization, but Qwen3 then drifted into adventure/menu
+  continuation.
+- T122: Mistral is better as the interpreting final actor after Qwen3 creates
+  an active signal. Continuing the compact Seeker-hum artifact produced the
+  strongest evidence: Finn explicitly interprets Seeker's hum as communication
+  and a desire for interaction.
 
 ## Next Tries
 
+- Treat `maker_finn_companion_seeker_hum_plainread_mistral1` as the current
+  qualifying evidence unless a stricter quoted/self-voiced Seeker exchange is
+  required. The useful file is
+  `_finn/20260620T101343Z-2ea3e717/write_file_0002_intriguing_finn_said_aloud_his_eyes_scanning_the_holographic.md`.
+- If stricter proof is needed, continue only from the compact Seeker-hum file
+  or Qwen3's overwritten third-attempt file using
+  `TOOL_RESULT_MESSAGE_MODE=read-file-preview`; require a `Seeker:` line or a
+  direct translation of the hum before accepting another continuation.
 - Continue the `gemma4:e4b` life/archive branch while it is adding durable
   artifacts. Use files mode, enforced first list, `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES=8`,
   `MAX_TOOL_CALLS_PER_WAKE=40`, and bounded Ollama output. Watch for any move
