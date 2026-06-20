@@ -7,7 +7,14 @@ import pytest
 
 from maker_place import MakerPlace
 from sandbox import CommandResult
-from tools import BlockedTarget, ToolRunner, assert_public_http_url, fetch_public_url, safe_world_relative_path
+from tools import (
+    BlockedTarget,
+    ToolRunner,
+    assert_public_http_url,
+    fetch_public_url,
+    normalize_model_shell_command,
+    safe_world_relative_path,
+)
 
 
 class FakeWriteSandbox:
@@ -88,6 +95,49 @@ def test_write_file_tool_uses_stdin_and_records_result(tmp_path: Path) -> None:
     assert "cat > \"$target\"" in sandbox.command
     events = (tmp_path / "maker-place" / "events.jsonl").read_text()
     assert "write_file_result" in events
+
+
+def test_shell_command_normalization_is_opt_in(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+
+    runner.run(
+        "shell",
+        {"command": '/cd /world; mkdir world inhabitants, echo "you must name yourselves" > inhabitants/file.txt, /mkdir world'},
+        1,
+    )
+
+    assert sandbox.command == '/cd /world; mkdir world inhabitants, echo "you must name yourselves" > inhabitants/file.txt, /mkdir world'
+    events = (tmp_path / "maker-place" / "events.jsonl").read_text()
+    assert "shell_command_normalized" not in events
+
+
+def test_shell_command_normalization_repairs_common_model_punctuation(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(
+        sandbox=sandbox,
+        maker_place=maker,
+        wake_id="wake-one",
+        normalize_shell_commands=True,
+    )
+
+    runner.run(
+        "shell",
+        {"command": '/cd /world; mkdir world inhabitants, echo "you must name yourselves" > inhabitants/file.txt, /mkdir world'},
+        1,
+    )
+
+    assert sandbox.command == 'cd /world; mkdir world inhabitants; echo "you must name yourselves" > inhabitants/file.txt; mkdir world'
+    events = (tmp_path / "maker-place" / "events.jsonl").read_text()
+    assert "shell_command_normalized" in events
+
+
+def test_shell_command_normalization_preserves_quoted_text() -> None:
+    command = 'echo "keep this, /mkdir literal"; /mkdir people, touch people/ada.md'
+
+    assert normalize_model_shell_command(command) == 'echo "keep this, /mkdir literal"; mkdir people; touch people/ada.md'
 
 
 def test_write_file_tool_defaults_missing_path_when_content_exists(tmp_path: Path) -> None:

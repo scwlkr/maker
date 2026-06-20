@@ -57,6 +57,7 @@ class Settings:
     first_model_tool_choice: Any | None = None
     tool_schema_mode: str = "all"
     text_tool_call_mode: str = "disabled"
+    normalize_shell_commands: bool = False
 
 
 class ModelClient(Protocol):
@@ -275,6 +276,7 @@ class Controller:
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
+            "normalize_shell_commands": self.settings.normalize_shell_commands,
             "max_consecutive_text_only_responses": self.settings.max_consecutive_text_only_responses,
             "max_tool_calls_per_wake": self.settings.max_tool_calls_per_wake,
             "end_reason": None,
@@ -305,6 +307,7 @@ class Controller:
                 wake_id=wake_id,
                 fetch_timeout_seconds=self.settings.fetch_timeout_seconds,
                 max_tool_output_chars=self.settings.sandbox.tool_output_chars,
+                normalize_shell_commands=self.settings.normalize_shell_commands,
             )
 
             call_index = 0
@@ -994,6 +997,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         first_model_tool_choice=parse_model_tool_choice(os.getenv("FIRST_MODEL_TOOL_CHOICE")),
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
+        normalize_shell_commands=os.getenv("NORMALIZE_SHELL_COMMANDS", "0") == "1",
     )
 
 

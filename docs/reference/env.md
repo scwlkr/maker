@@ -35,6 +35,7 @@ Settings come from process environment and `.env`.
 | `TEXT_ONLY_DELAY_SECONDS` | `2` | Delay after a text-only model response |
 | `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES` | `3` | Positive cap on consecutive text-only model responses before ending the wake |
 | `MAX_TOOL_CALLS_PER_WAKE` | `80` | Positive cap on executed tool calls in one wake |
+| `NORMALIZE_SHELL_COMMANDS` | `0` | `1` repairs common model shell punctuation mistakes outside quotes, such as `/cd` and comma-separated command sequences |
 
 ## Storage And Sandbox
 

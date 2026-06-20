@@ -26,6 +26,9 @@ This file is the compact source of truth for current Maker behavior.
   the controller preserves that text through the requested file tool.
 - First-turn `function:list_files` tool choice can be enforced by the controller
   when a provider ignores the requested tool choice.
+- Optional shell command normalization can repair common model punctuation
+  mistakes such as `/cd` and comma-separated shell commands when explicitly
+  enabled.
 - Repeated text-only model responses end the wake after three consecutive
   responses without tool calls.
 - `fetch` blocks localhost, private, link-local, multicast, reserved,

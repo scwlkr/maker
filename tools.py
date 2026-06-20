@@ -347,6 +347,88 @@ def default_write_path(tool_name: str, wake_id: str, call_index: int, content: s
     return f"_finn/{safe_wake_id}/{safe_tool_name}_{call_index:04d}{suffix}.md"
 
 
+NORMALIZABLE_SHELL_COMMANDS = {
+    "awk",
+    "bash",
+    "cat",
+    "cd",
+    "cp",
+    "echo",
+    "find",
+    "grep",
+    "ls",
+    "mkdir",
+    "mv",
+    "printf",
+    "python",
+    "python3",
+    "rm",
+    "sed",
+    "sh",
+    "tee",
+    "touch",
+}
+
+
+def _next_shell_word(command: str, index: int) -> tuple[str, int]:
+    if index < len(command) and command[index] == "/":
+        index += 1
+    start = index
+    while index < len(command) and (command[index].isalnum() or command[index] in "_-"):
+        index += 1
+    return command[start:index], start
+
+
+def normalize_model_shell_command(command: str) -> str:
+    """Repair common model shell punctuation mistakes without touching quotes."""
+    command = command.strip()
+    output: list[str] = []
+    quote: str | None = None
+    escaped = False
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if escaped:
+            output.append(char)
+            escaped = False
+            index += 1
+            continue
+        if char == "\\":
+            output.append(char)
+            escaped = True
+            index += 1
+            continue
+        if quote:
+            output.append(char)
+            if char == quote:
+                quote = None
+            index += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            output.append(char)
+            index += 1
+            continue
+        if char == ",":
+            lookahead = index + 1
+            while lookahead < len(command) and command[lookahead].isspace():
+                lookahead += 1
+            word, word_start = _next_shell_word(command, lookahead)
+            if word in NORMALIZABLE_SHELL_COMMANDS:
+                output.append("; ")
+                index = word_start
+                continue
+        if char == "/":
+            previous = "".join(output).rstrip()
+            word, _ = _next_shell_word(command, index)
+            if word in NORMALIZABLE_SHELL_COMMANDS and (not previous or previous[-1] in ";&|\n"):
+                index += 1
+                continue
+        output.append(char)
+        index += 1
+    return "".join(output)
+
+
 class ToolRunner:
     def __init__(
         self,
@@ -355,12 +437,14 @@ class ToolRunner:
         wake_id: str,
         fetch_timeout_seconds: int = 30,
         max_tool_output_chars: int = 20000,
+        normalize_shell_commands: bool = False,
     ):
         self.sandbox = sandbox
         self.maker_place = maker_place
         self.wake_id = wake_id
         self.fetch_timeout_seconds = fetch_timeout_seconds
         self.max_tool_output_chars = max_tool_output_chars
+        self.normalize_shell_commands = normalize_shell_commands
 
     def run(self, name: str, args: dict[str, Any], call_index: int) -> tuple[dict[str, Any], bool]:
         if name == "shell":
@@ -386,7 +470,15 @@ class ToolRunner:
         return result, False
 
     def _shell(self, args: dict[str, Any], call_index: int) -> dict[str, Any]:
-        command = str(args.get("command", ""))
+        original_command = str(args.get("command", ""))
+        command = normalize_model_shell_command(original_command) if self.normalize_shell_commands else original_command
+        if command != original_command:
+            self.maker_place.append_event(
+                "shell_command_normalized",
+                self.wake_id,
+                original_command=original_command,
+                command=command,
+            )
         self.maker_place.append_event("tool_call", self.wake_id, tool="shell", command=command)
         result = self.sandbox.exec_bash(command)
         summary = result.for_tool(self.max_tool_output_chars)
