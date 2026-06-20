@@ -108,6 +108,7 @@ def test_controller_run_once_with_mock_model_real_sandbox(
         model_max_tokens=None,
         fetch_timeout_seconds=5,
         text_only_delay_seconds=0,
+        max_consecutive_text_only_responses=3,
         max_tool_calls_per_wake=80,
         maker_place_dir=tmp_path / "maker-place",
         sandbox=sandbox_settings,

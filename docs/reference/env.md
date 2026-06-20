@@ -32,6 +32,7 @@ Settings come from process environment and `.env`.
 | `SHELL_TIMEOUT_SECONDS` | `60` | Sandbox shell command timeout |
 | `MAX_TOOL_OUTPUT_CHARS` | `20000` | Tool stdout/stderr truncation limit |
 | `TEXT_ONLY_DELAY_SECONDS` | `2` | Delay after a text-only model response |
+| `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES` | `3` | Positive cap on consecutive text-only model responses before ending the wake |
 | `MAX_TOOL_CALLS_PER_WAKE` | `80` | Positive cap on executed tool calls in one wake |
 
 ## Storage And Sandbox

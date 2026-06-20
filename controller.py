@@ -47,6 +47,7 @@ class Settings:
     model_max_tokens: int | None
     fetch_timeout_seconds: int
     text_only_delay_seconds: float
+    max_consecutive_text_only_responses: int
     max_tool_calls_per_wake: int
     maker_place_dir: Path
     sandbox: SandboxSettings
@@ -242,6 +243,7 @@ class Controller:
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
+            "max_consecutive_text_only_responses": self.settings.max_consecutive_text_only_responses,
             "max_tool_calls_per_wake": self.settings.max_tool_calls_per_wake,
             "end_reason": None,
             "tool_calls": [],
@@ -320,7 +322,7 @@ class Controller:
                     self.maker_place.append_event(
                         "model_text_only", wake_id, consecutive=consecutive_text_only
                     )
-                    if consecutive_text_only >= MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES:
+                    if consecutive_text_only >= self.settings.max_consecutive_text_only_responses:
                         summary["end_reason"] = TEXT_ONLY_LIMIT_REASON
                         error = (
                             "model returned text-only responses without tool calls "
@@ -331,7 +333,7 @@ class Controller:
                             "text_only_limit_reached",
                             wake_id,
                             consecutive=consecutive_text_only,
-                            limit=MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES,
+                            limit=self.settings.max_consecutive_text_only_responses,
                             error=error,
                         )
                         break
@@ -819,6 +821,10 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         model_max_tokens=parse_optional_positive_int_env("MODEL_MAX_TOKENS"),
         fetch_timeout_seconds=int(os.getenv("FETCH_TIMEOUT_SECONDS", "30")),
         text_only_delay_seconds=float(os.getenv("TEXT_ONLY_DELAY_SECONDS", "2")),
+        max_consecutive_text_only_responses=parse_positive_int_env(
+            "MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES",
+            MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES,
+        ),
         max_tool_calls_per_wake=parse_positive_int_env("MAX_TOOL_CALLS_PER_WAKE", 80),
         maker_place_dir=Path(os.getenv("MAKER_PLACE_DIR", "maker-place")),
         sandbox=settings_from_env(repo_root),

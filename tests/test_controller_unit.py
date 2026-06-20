@@ -147,6 +147,7 @@ def make_settings(tmp_path: Path) -> Settings:
         model_max_tokens=None,
         fetch_timeout_seconds=5,
         text_only_delay_seconds=0,
+        max_consecutive_text_only_responses=3,
         max_tool_calls_per_wake=80,
         maker_place_dir=tmp_path / "maker-place",
         sandbox=SandboxSettings(repo_root=Path.cwd()),
