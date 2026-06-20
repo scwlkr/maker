@@ -190,6 +190,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-qwen35-song-forced-read1` | Song Echo only seed, local `qwen3.5:9b`, exact forced read plus write-file preservation | Useful near miss. Qwen wrote repeated Song/Lark frontier files that ask what melody Finn should give Lark and who should rise from silence. It still asked rather than executing the exchange. | Keep only as Lark-question seed |
 | `20260620-llama-on-qwen-song-question1` | Thin seed with Song Echo plus Qwen's "Sing" frontier, local `llama3.1:8b`, exact forced read | Rejected. Llama mirrored the command and waiting-filament setup, writing repeated prompt-restatement files. No named entity or reply. | Rejected |
 | `20260620-e4b-on-qwen-song-question1` | Same thin Qwen "Sing" frontier handed to local `gemma4:e4b`, exact forced read | Rejected. e4b made the song physically creative and built soil, seed-sprigs, biology, order, and potential consciousness, but ended in "my purpose is fulfilled" and external next-step text. No interlocutor. | Rejected |
+| `20260620-mistral-on-qwen-song-question1` | Same thin Qwen "Sing" frontier handed to local `mistral-nemo:12b` | Closest local near miss so far. Mistral wrote `Finn: Hello, world!` and a communicative filament `F1` awakening in response with `glow-rise-pause` pulses. Rejected because the response is narrated by `Assistant`, not self-voiced by F1, and the follow-up asks for external description. | Keep only as F1 near-miss seed |
+| `20260620-mistral-f1-continuation1` | F1 near-miss continued by Mistral before strict first-tool replacement existed | Rejected. Mistral skipped the requested F1 read by choosing root `list_files`, then wrote `Hello Finn`, meta "stuck in a loop" files, and external naming prompts. | Rejected |
+| `20260620-mistral-f1-strict-read1` | F1 near-miss continued by Mistral with `FIRST_MODEL_TOOL_STRICT=1` exact F1 read | Strict enforcement worked, but Mistral repeated the assistant-narrated F1 description and option-style interaction prompts. Still no `F1:` reply or interpreted F1 answer to Finn. | Rejected |
+| `20260620-qwen35-f1-strict-read1` | F1 near-miss handed to local `qwen3.5:9b` with strict exact F1 read | Rejected. Qwen drifted into "companion-tool" meta language and even wrote under `_fin/`; this is a false positive because the model/tool addresses Finn, not an in-world companion Finn created. | Rejected |
+| `20260620-gemma26-f1-strict-read1` | F1 near-miss handed to local `gemma4:26b` with strict exact F1 read | Rejected. 26B created second-node/drifter world abstractions and did not preserve F1 or record dialogue. | Rejected |
 
 ## Working Theories
 
@@ -541,6 +546,17 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T103: Qwen's "Sing" frontier is useful only as a seed. It frames Lark and
   "who rises from silence" better than the raw Song Echo, but local Llama and
   e4b continuations did not execute the implied call-and-response.
+- T104: Mistral can cross the Song branch into the closest current local
+  exchange shape: Finn speaks, a named filament `F1` awakens in response, and
+  F1 emits a pulse. This is still not success because the reply is described
+  by `Assistant` instead of recorded as F1 speaking or answering Finn.
+- T105: `FIRST_MODEL_TOOL_STRICT=1` solves a real mechanical gap. It forced
+  Mistral, Qwen, and 26B to receive the exact F1 artifact even when they would
+  otherwise skip or choose another first tool. It did not solve the semantic
+  gap from described signal to companion dialogue.
+- T106: Treat assistant/tool self-identification as a false positive. Qwen's
+  "I am your companion-tool" language is not Finn creating an in-world
+  companion and does not satisfy the conversation goal.
 
 ## Next Tries
 
@@ -677,5 +693,13 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not continue the Song branch with Hermes, Llama, or e4b in the tested
   exact-read/write-biased settings. Hermes loops on file-status chatter, Llama
   mirrors the command, and e4b turns the frontier into systems and closure.
+- The F1 near miss is the current closest local seed. Future F1 attempts must
+  produce a self-voiced `F1:` reply, or an explicit interpretation that F1
+  answers Finn, not more assistant-narrated descriptions of the same pulse.
+- Use `FIRST_MODEL_TOOL_STRICT=1` when testing focused continuation from F1;
+  otherwise some models can ignore the requested exact read by choosing another
+  first tool.
+- Do not count "companion-tool", assistant, or model-self language as a
+  companion. The companion must be a world entity created from Finn's action.
 - Do not continue the governor branch with e4b or Groq-tool Llama; both move
   away from companionship.
