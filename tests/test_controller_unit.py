@@ -748,6 +748,7 @@ def test_tool_schema_mode_can_limit_to_file_tools(tmp_path: Path) -> None:
         "list_files",
         "read_file",
         "write_file",
+        "append_file",
     ]
 
 

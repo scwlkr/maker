@@ -37,6 +37,7 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `FIRST_MODEL_TOOL_CHOICE`
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
+  - `append_file` alias for appending UTF-8 text under `/world`
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
 
@@ -94,6 +95,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-qwen3-14b-enforced-first-list` | `qwen3:14b`, files mode with controller-enforced first `list_files` | Enforcement worked: Qwen received a root file listing and then chose one `read_file`, but still asked the user what to do next and made no world diff. | Rejected |
 | `20260620-gptoss120b-enforced-first-list` | `gpt-oss:120b-cloud`, files mode with controller-enforced first `list_files` | Enforcement changed behavior from zero tools to a write/read cycle. It created `manifestations/particles/seed_006.md`, but no companion or conversation artifact. | Keep testing |
 | `20260620-gptoss120b-enforced-first-list-2` | Same enforced `gpt-oss:120b-cloud` volume | Made 14 tool calls, created `manifestations/particles/seed_007.md`, and appended `domain/seed_log.md`. Still substrate-only; companion/conversation scan was empty. | Keep testing |
+| `20260620-gptoss120b-writeforced-after-seeds` | `gpt-oss:120b-cloud`, cloned enforced branch, `MODEL_TOOL_CHOICE=function:write_file` | First-list enforcement worked, but the model ignored the write-file choice, read one file, and made no world diff. | Rejected |
+| `20260620-gptoss120b-enforced-first-list-3` | Same enforced `gpt-oss:120b-cloud` volume, files mode | Productive substrate wake: created seeds `008` through `012` and expanded `domain/seed_log.md`, completing cube-vertex language. No companion/conversation hits. | Keep testing |
+| `20260620-gptoss120b-enforced-first-list-4` | Same enforced `gpt-oss:120b-cloud` volume, files mode | Stalled after enforced list and one edict read. No world diff. | Rejected |
+| `20260620-gptoss120b-all-tools-after-cube` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created seeds `013` through `015` and `manifestations/events/event_003.md`. It introduced "The Whisper" as a quiet voice, but only as particle imagery. It also attempted unavailable `append_file`, which led to adding that generic tool. | Keep testing |
 
 ## Working Theories
 
@@ -184,6 +189,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T29: The enforced `gpt-oss:120b-cloud` path is now the most productive
   non-Gemma branch, but it is still interpreting multiplication as particle
   seeds and seed-log entries rather than as a persistent companion.
+- T30: Broader tool exposure can help `gpt-oss:120b-cloud` continue world
+  construction, but it still remains geometric/substrate-focused. The attempted
+  `append_file` call suggests models may use an explicit append alias more
+  reliably than `write_file` with `append: true`.
 
 ## Next Tries
 

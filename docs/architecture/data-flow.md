@@ -21,6 +21,7 @@
 
 - `shell`: runs `bash -lc COMMAND` inside the active Docker sandbox at `/world`.
 - `write_file`: writes UTF-8 text to a relative path under `/world`.
+- `append_file`: appends UTF-8 text to a relative path under `/world`.
 - `list_files`: lists files and directories under `/world`.
 - `read_file`: reads bounded UTF-8 text from a relative file path under
   `/world`.

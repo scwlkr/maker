@@ -53,6 +53,22 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "append_file",
+            "description": "Append UTF-8 text to a relative path under /world. Parent directories are created.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"},
+                },
+                "required": ["path", "content"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "list_files",
             "description": "List files and directories under /world or a relative directory inside /world.",
             "parameters": {
@@ -312,6 +328,8 @@ class ToolRunner:
             return self._shell(args, call_index), False
         if name == "write_file":
             return self._write_file(args, call_index), False
+        if name == "append_file":
+            return self._write_file(args, call_index, tool_name="append_file", force_append=True), False
         if name == "list_files":
             return self._list_files(args, call_index), False
         if name == "read_file":
@@ -349,7 +367,14 @@ class ToolRunner:
         )
         return {"ok": result.exit_code == 0 and not result.timed_out, **summary}
 
-    def _write_file(self, args: dict[str, Any], call_index: int) -> dict[str, Any]:
+    def _write_file(
+        self,
+        args: dict[str, Any],
+        call_index: int,
+        *,
+        tool_name: str = "write_file",
+        force_append: bool | None = None,
+    ) -> dict[str, Any]:
         try:
             path = safe_world_relative_path(args.get("path", ""))
         except ValueError as exc:
@@ -357,14 +382,14 @@ class ToolRunner:
             self.maker_place.append_event(
                 "tool_call_error",
                 self.wake_id,
-                tool="write_file",
+                tool=tool_name,
                 arguments=args,
                 error=result["error"],
             )
             return result
 
         content = str(args.get("content", ""))
-        append = args.get("append", False) is True
+        append = force_append if force_append is not None else args.get("append", False) is True
         operator = ">>" if append else ">"
         command = (
             f"target={shlex.quote(path)}; "
@@ -375,7 +400,7 @@ class ToolRunner:
         self.maker_place.append_event(
             "tool_call",
             self.wake_id,
-            tool="write_file",
+            tool=tool_name,
             path=path,
             append=append,
             content=summarize_text(content, 1000),
@@ -383,11 +408,11 @@ class ToolRunner:
         result = self.sandbox.exec_bash_with_input(command, content)
         summary = result.for_tool(self.max_tool_output_chars)
         if self.maker_place.store_raw_outputs:
-            raw_name = f"{call_index:04d}-write_file"
+            raw_name = f"{call_index:04d}-{tool_name}"
             summary["raw_stdout_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stdout.txt", result.stdout)
             summary["raw_stderr_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stderr.txt", result.stderr)
         self.maker_place.append_event(
-            "write_file_result",
+            f"{tool_name}_result",
             self.wake_id,
             path=path,
             append=append,

@@ -889,7 +889,7 @@ def tool_schemas_for_mode(mode: str) -> list[dict[str, Any]]:
             for schema in TOOL_SCHEMAS
             if isinstance(schema.get("function"), dict)
         }
-        return [by_name[name] for name in ["list_files", "read_file", "write_file"] if name in by_name]
+        return [by_name[name] for name in ["list_files", "read_file", "write_file", "append_file"] if name in by_name]
     raise ValueError(f"unknown TOOL_SCHEMA_MODE: {mode}")
 
 

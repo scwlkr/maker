@@ -90,6 +90,27 @@ def test_write_file_tool_uses_stdin_and_records_result(tmp_path: Path) -> None:
     assert "write_file_result" in events
 
 
+def test_append_file_tool_uses_stdin_and_records_result(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+
+    result, should_finish = runner.run(
+        "append_file",
+        {"path": "people/ada.md", "content": "again\n"},
+        1,
+    )
+
+    assert should_finish is False
+    assert result["ok"] is True
+    assert result["path"] == "people/ada.md"
+    assert result["append"] is True
+    assert sandbox.input_text == "again\n"
+    assert "cat >> \"$target\"" in sandbox.command
+    events = (tmp_path / "maker-place" / "events.jsonl").read_text()
+    assert "append_file_result" in events
+
+
 def test_write_file_tool_rejects_unsafe_path(tmp_path: Path) -> None:
     sandbox = FakeWriteSandbox()
     maker = MakerPlace(tmp_path / "maker-place")
