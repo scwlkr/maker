@@ -36,6 +36,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `TOOL_SCHEMA_MODE=files`
   - `FIRST_MODEL_TOOL_CHOICE`
   - `FIRST_MODEL_TOOL_ARGS_JSON` for focused enforced first-tool calls
+  - `FIRST_MODEL_TOOL_STRICT=1` for replacing an incorrect first model tool
+    call with the configured first tool
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
   - optional `LIST_FILES_PREVIEW_CHARS` bounded newest-file previews in

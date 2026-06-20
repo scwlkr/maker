@@ -31,7 +31,9 @@ This file is the compact source of truth for current Maker behavior.
 - First-turn tool choice can be enforced by the controller when a provider
   ignores the requested tool choice: unset arguments synthesize a safe root
   `function:list_files`, and `FIRST_MODEL_TOOL_ARGS_JSON` can provide targeted
-  arguments for a configured first tool.
+  arguments for a configured first tool. `FIRST_MODEL_TOOL_STRICT=1` can also
+  replace an incorrect first returned model tool call with that configured
+  first tool.
 - Optional shell command normalization can repair common model punctuation
   mistakes such as `/cd` and comma-separated shell commands when explicitly
   enabled.

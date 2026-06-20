@@ -381,6 +381,33 @@ def test_ignored_write_file_choice_preserves_text_as_fallback_write(
     assert "write_file_path_defaulted" in events
 
 
+def test_strict_first_model_tool_choice_overrides_wrong_tool_call(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.first_model_tool_choice = {"type": "function", "function": {"name": "read_file"}}
+    settings.first_model_tool_args = {"path": "target.md"}
+    settings.first_model_tool_strict = True
+    maker = MakerPlace(settings.maker_place_dir)
+    client = RecordingToolChoiceModelClient()
+
+    summary = Controller(settings, maker_place=maker, model_client=client).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert client.tool_choices[0] == settings.first_model_tool_choice
+    assert [call["name"] for call in summary["tool_calls"]] == ["read_file", "sleep_or_finish"]
+    assert summary["tool_calls"][0]["id"] == "enforced-first-tool-choice-1"
+    assert summary["tool_calls"][0]["arguments"] == {"path": "target.md"}
+    events = (settings.maker_place_dir / "events.jsonl").read_text()
+    assert "first_tool_choice_enforced" in events
+    assert '"strict": true' in events
+    assert '"list_files"' in events
+
+
 def test_exact_json_text_tool_call_mode_promotes_tool_calls(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -829,11 +856,13 @@ def test_settings_parse_list_files_preview_chars(monkeypatch: pytest.MonkeyPatch
 
 def test_settings_parse_first_model_tool_args(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("FIRST_MODEL_TOOL_ARGS_JSON", '{"path":"_finn/song.md"}')
+    monkeypatch.setenv("FIRST_MODEL_TOOL_STRICT", "1")
     monkeypatch.setenv("MAKER_PLACE_DIR", str(tmp_path / "maker-place"))
 
     settings = controller.settings_from_env_file(tmp_path)
 
     assert settings.first_model_tool_args == {"path": "_finn/song.md"}
+    assert settings.first_model_tool_strict is True
 
 
 def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:

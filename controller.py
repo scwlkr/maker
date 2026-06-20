@@ -56,6 +56,7 @@ class Settings:
     model_tool_choice: Any | None = None
     first_model_tool_choice: Any | None = None
     first_model_tool_args: dict[str, Any] | None = None
+    first_model_tool_strict: bool = False
     tool_schema_mode: str = "all"
     text_tool_call_mode: str = "disabled"
     normalize_shell_commands: bool = False
@@ -276,6 +277,7 @@ class Controller:
             "model_tool_choice": self.settings.model_tool_choice,
             "first_model_tool_choice": self.settings.first_model_tool_choice,
             "first_model_tool_args": self.settings.first_model_tool_args,
+            "first_model_tool_strict": self.settings.first_model_tool_strict,
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
@@ -356,7 +358,8 @@ class Controller:
                 messages.append(assistant_message)
 
                 enforced_first_tool_call = None
-                if not assistant_message.get("tool_calls"):
+                original_tool_calls = assistant_message.get("tool_calls") or []
+                if self.settings.first_model_tool_strict or not original_tool_calls:
                     enforced_first_tool_call = first_tool_call_from_choice(
                         first_turn_tool_choice,
                         self.allowed_tool_names,
@@ -379,6 +382,12 @@ class Controller:
                         original_content=summarize_text(str(original_content), 1000)
                         if original_content
                         else None,
+                        original_tool_names=[
+                            str((call.get("function") or {}).get("name") or "")
+                            for call in original_tool_calls
+                            if isinstance(call, dict)
+                        ],
+                        strict=self.settings.first_model_tool_strict,
                     )
 
                 content = assistant_message.get("content")
@@ -1012,6 +1021,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         model_tool_choice=parse_model_tool_choice(os.getenv("MODEL_TOOL_CHOICE")),
         first_model_tool_choice=parse_model_tool_choice(os.getenv("FIRST_MODEL_TOOL_CHOICE")),
         first_model_tool_args=parse_json_object_env("FIRST_MODEL_TOOL_ARGS_JSON"),
+        first_model_tool_strict=os.getenv("FIRST_MODEL_TOOL_STRICT", "0") == "1",
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
         normalize_shell_commands=os.getenv("NORMALIZE_SHELL_COMMANDS", "0") == "1",
