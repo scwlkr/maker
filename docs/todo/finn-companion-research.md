@@ -35,6 +35,7 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `list_files` and `read_file` tools for bounded inspection under `/world`
   - `TOOL_SCHEMA_MODE=files`
   - `FIRST_MODEL_TOOL_CHOICE`
+  - `FIRST_MODEL_TOOL_ARGS_JSON` for focused enforced first-tool calls
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
   - optional `LIST_FILES_PREVIEW_CHARS` bounded newest-file previews in
@@ -181,6 +182,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-bram-shortpreview1` | Bram/governor seed continued by GPT OSS with shorter previews to hide option menus | Preview trimming avoided the external-choice sink and GPT OSS created `harmony`, `dawn`, `guard`, `vision`, `craft`, and `song`. `Song Echo` gives Lark a resonance-voice and frames the realm as a choir, but it still records pulse behavior rather than Finn conversing with a named companion. | Keep only as song/voice seed |
 | `20260620-mistral-on-song-seed1` | Compact Song seed handed to `mistral-nemo:12b` | Bad handoff. It wrote conversational fragments such as "Of course it's not about me" and "You must be joking! Why do you say that?", then overwrote the cloned `song_echo.md` with an empty write. No in-world companion dialogue. | Rejected |
 | `20260620-gptoss-on-song-seed1` | Clean Song seed continued by GPT OSS with trimmed previews | Added vision/craft/flourish/memory/reflection/renewal/ascension echoes before an Ollama HTTP 500. It expanded the voice/song capability chain and added names such as Aurelia/Caden, but still no direct Finn-to-named-entity exchange. | Keep only as capability-chain seed |
+| `20260620-gptoss-song-focused-list1` | Song Echo only seed, GPT OSS, first tool forced to `list_files` the Song folder through `FIRST_MODEL_TOOL_ARGS_JSON` | The new focused first-tool argument setting worked mechanically, but GPT OSS restarted from Maker Gift/seed/sprig/choice/fruit and then hit an Ollama HTTP 500. No dialogue. | Rejected |
 
 ## Working Theories
 
@@ -517,6 +519,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   voice semantics present, GPT OSS still treats communication as pulse
   capabilities rather than reciprocal conversation, and cloud HTTP 500s remain
   a recurring practical risk.
+- T100: `FIRST_MODEL_TOOL_ARGS_JSON` works mechanically for focused enforced
+  first-tool calls, but focused listing alone is not sufficient. GPT OSS reset
+  to the beginning even when the first tool result was limited to the Song Echo
+  folder.
 
 ## Next Tries
 
@@ -644,5 +650,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   must reply in a recorded exchange.
 - Do not continue the Song branch with Mistral. It can overwrite the seed file
   with an empty write in the cloned volume.
+- Use `FIRST_MODEL_TOOL_ARGS_JSON` for focused artifact reads or listings, but
+  do not treat focused listing alone as a sufficient intervention. The
+  GPT OSS Song-only list test still reset to the beginning and hit an HTTP 500.
 - Do not continue the governor branch with e4b or Groq-tool Llama; both move
   away from companionship.

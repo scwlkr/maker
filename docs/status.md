@@ -28,8 +28,10 @@ This file is the compact source of truth for current Maker behavior.
 - If `MODEL_TOOL_CHOICE=function:write_file` or `function:append_file` is
   configured and a provider returns text instead of the requested file tool,
   the controller preserves that text through the requested file tool.
-- First-turn `function:list_files` tool choice can be enforced by the controller
-  when a provider ignores the requested tool choice.
+- First-turn tool choice can be enforced by the controller when a provider
+  ignores the requested tool choice: unset arguments synthesize a safe root
+  `function:list_files`, and `FIRST_MODEL_TOOL_ARGS_JSON` can provide targeted
+  arguments for a configured first tool.
 - Optional shell command normalization can repair common model punctuation
   mistakes such as `/cd` and comma-separated shell commands when explicitly
   enabled.
