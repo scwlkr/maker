@@ -140,6 +140,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-council-continuation-1` | Same GPT OSS branch, write-forced continuation | Recovered writes persisted guardian beings, including Emberhawk, Stonebear, and Tideweaver. Their vows were explicitly silent, so this remains partnership imagery rather than dialogue. | Keep testing with local handoff |
 | `20260620-gemma4e4b-on-gptoss-guardians-1` | Local `gemma4:e4b` on the GPT OSS inhabitants/guardians branch, files mode, enforced first list | Wrote Dragon's Spine geography, settlement blueprint, and Founding Protocols with a Council of Expertise (Master Gardener, Chief Stoneworker, River Engineer, Lore Keeper). Text-only tail reached initial settlers and "those who now exist", but no named person or recorded exchange persisted. | Keep testing |
 | `20260620-gemma4e4b-gptoss-settlers-writeforced-1` | Same GPT OSS/e4b branch, local e4b, files mode, `MODEL_TOOL_CHOICE=function:write_file` | Wrote 14 recovered continuation files and hit the 16-tool cap. The run persisted more Spring Node/settlement/protocol/physics material and said characters were only "conceptually ready"; durable grep found no companion, dialogue, apprentice, student, mentor, or named settler exchange. | Rejected |
+| `20260620-gptoss-prespring-writeforced-1` | GPT OSS/e4b guardian branch cloned before the rejected Spring Node continuation, `gpt-oss:120b-cloud`, write-forced recovery | Productive council/people wake: summoned the Council, convened Master Gardener/Stoneworker/River Engineer/Lore Keeper roles, described people and a Hearth Hall, and wrote chronicles/plans. Still no named individual companion or recorded exchange; "companion" only appeared as companion planting. | Keep testing only via handoff |
+| `20260620-gptoss-prespring-writeforced-2` | Same GPT OSS branch after the productive council/people wake, write-forced recovery | Wrote a few new archive/orchard/chronicle files before an Ollama HTTP 500. It regressed into "what should Finn focus on next" and did not add dialogue or a named companion. | Rejected |
+| `20260620-gemma4e4b-gptoss-council-people-required-1` | Local `gemma4:e4b` handoff from the productive GPT OSS council/people state, files mode, `MODEL_TOOL_CHOICE=required` | Read existing settlement/council files and wrote two more covenant/edict records, then ended on `text_only_limit`. It explicitly declared the framework complete and awaited external direction. No companion, apprentice, named settler, or dialogue appeared. | Rejected |
 
 ## Working Theories
 
@@ -345,6 +348,15 @@ user content. Do not add a companion directive or other behavioral prompt.
   branch has enough structure; further value likely requires either a model
   that acts without asking for the next phase or a stochastic run that names a
   character early.
+- T62: GPT OSS can cross from abstract guardians into an actual council and
+  "people" artifacts from the unchanged Maker prompt, but it still names roles
+  rather than individuals and uses reports/plans instead of dialogue.
+- T63: The current GPT OSS cloud path is too unstable for deep continuation:
+  a promising council/people wake was followed immediately by an Ollama HTTP
+  500 and a return to request-guidance text.
+- T64: Local e4b does not currently capitalize on GPT OSS council/people
+  state. It reads the files, then re-canonizes law/edicts and asks for the next
+  external challenge instead of letting the council speak.
 
 ## Next Tries
 
@@ -399,3 +411,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not continue the GPT OSS/e4b guardian branch in write-forced mode if it
   starts from the latest Spring Node continuation. The last wake explicitly
   treated people as only conceptually ready and asked for a next phase.
+- Do not continue the GPT OSS council/people branch with local e4b in required
+  mode unless a prior run has already produced a named person or explicit
+  dialogue. It is currently a canonization/await-direction sink.
+- Treat GPT OSS council/people continuations as high variance and cloud
+  unstable. If used again, keep caps low and preserve any productive state into
+  a clone before the next cloud attempt.
