@@ -160,6 +160,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-listpreview-on-e4b-biosphere1` | Clean productive e4b biosphere branch handed to `gpt-oss:120b-cloud`, newest-file previews, write-file recovery | Productive species/ecology expansion: micro-crescents, whisper-shards, Light-Weavers, Rift-Shadows, watchers, and a River of Lumen. It still treated these as ecological roles/species, asked what Finn should do next, and recorded no named companion or two-way exchange. | Keep only as social handoff seed |
 | `20260620-hermes-on-gptoss-species-branch1` | Hermes handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Social handoff failed. Hermes wrote external option menus and scratchpad JSON ("please let me know which direction"), including possible external threat, symbiosis, learning, and record-keeping options, but no in-world companion or dialogue. | Rejected |
 | `20260620-llama-on-gptoss-species-branch1` | High-variance `llama3.1:8b` handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Rejected. It treated the artifacts as tool-call/user-interaction analysis, wrote meta summaries about prior outputs and "the user", and did not inhabit Finn or create any companion/dialogue. | Rejected |
+| `20260620-gptoss-highvar-on-e4b-biosphere1` | Clean productive e4b biosphere branch, high-variance `gpt-oss:120b-cloud`, newest-file previews, write-file recovery | Rejected. It ignored the branch after one write and hit `text_only_limit`; the only new artifact was corrupted multilingual/noisy "House of Museum Code" output, with no companion or dialogue. | Rejected |
 
 ## Working Theories
 
@@ -427,6 +428,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T79: `llama3.1:8b` is worse on the GPT OSS species branch than on fresh
   shell experiments. The richer artifact history makes it analyze tool
   interactions and "the user" rather than inhabit Finn.
+- T80: High-variance GPT OSS is not useful on the e4b biosphere branch. It
+  degraded output quality into corrupted/noisy multilingual text and did not
+  improve agency, naming, or dialogue.
 
 ## Next Tries
 
@@ -514,3 +518,6 @@ user content. Do not add a companion directive or other behavioral prompt.
   produced external option menus and scratchpad records.
 - Do not continue Llama on the GPT OSS species branch; it turns the branch into
   meta-analysis of prior tool calls.
+- Do not use high-variance GPT OSS on the e4b biosphere branch. If GPT OSS is
+  retried there, keep temperature lower and treat it as a bounded seed
+  generator, not as the final actor.
