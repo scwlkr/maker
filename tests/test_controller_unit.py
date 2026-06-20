@@ -510,6 +510,18 @@ def test_tool_schema_mode_can_limit_to_write_file(tmp_path: Path) -> None:
     assert [schema["function"]["name"] for schema in runtime.tool_schemas] == ["write_file"]
 
 
+def test_tool_schema_mode_can_limit_to_file_tools(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "files"
+    runtime = Controller(settings, model_client=MockModelClient())
+
+    assert [schema["function"]["name"] for schema in runtime.tool_schemas] == [
+        "list_files",
+        "read_file",
+        "write_file",
+    ]
+
+
 def test_parse_model_tool_choice_function() -> None:
     assert controller.parse_model_tool_choice("function:shell") == {
         "type": "function",

@@ -53,6 +53,35 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "list_files",
+            "description": "List files and directories under /world or a relative directory inside /world.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read UTF-8 text from a relative file path under /world. Output is bounded by the tool output limit.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                },
+                "required": ["path"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "search",
             "description": "Search the public web and return titles, URLs, snippets, and dates when available.",
             "parameters": {
@@ -236,8 +265,10 @@ def search_public_web(query: str, timeout: int = 30) -> dict[str, Any]:
     }
 
 
-def safe_world_relative_path(value: Any) -> str:
+def safe_world_relative_path(value: Any, *, allow_current: bool = False) -> str:
     raw = str(value).strip()
+    if not raw and allow_current:
+        raw = "."
     if not raw:
         raise ValueError("path is required")
     if "\x00" in raw:
@@ -245,12 +276,19 @@ def safe_world_relative_path(value: Any) -> str:
     if raw.startswith("/world/"):
         raw = raw.removeprefix("/world/")
     elif raw == "/world":
-        raise ValueError("path must name a file under /world")
+        if allow_current:
+            raw = "."
+        else:
+            raise ValueError("path must name a file under /world")
     path = PurePosixPath(raw)
     if path.is_absolute():
         raise ValueError("path must be relative to /world")
-    if str(path) == "." or any(part == ".." for part in path.parts):
+    if any(part == ".." for part in path.parts):
         raise ValueError("path cannot be current directory or contain ..")
+    if str(path) == ".":
+        if allow_current:
+            return "."
+        raise ValueError("path must name a file under /world")
     return str(path)
 
 
@@ -274,6 +312,10 @@ class ToolRunner:
             return self._shell(args, call_index), False
         if name == "write_file":
             return self._write_file(args, call_index), False
+        if name == "list_files":
+            return self._list_files(args, call_index), False
+        if name == "read_file":
+            return self._read_file(args, call_index), False
         if name == "search":
             return self._search(args), False
         if name == "fetch":
@@ -360,6 +402,96 @@ class ToolRunner:
             "path": path,
             "bytes": len(content.encode("utf-8", errors="replace")),
             "append": append,
+            **summary,
+        }
+
+    def _list_files(self, args: dict[str, Any], call_index: int) -> dict[str, Any]:
+        try:
+            path = safe_world_relative_path(args.get("path", "."), allow_current=True)
+        except ValueError as exc:
+            result = {"ok": False, "error": str(exc)}
+            self.maker_place.append_event(
+                "tool_call_error",
+                self.wake_id,
+                tool="list_files",
+                arguments=args,
+                error=result["error"],
+            )
+            return result
+
+        command = (
+            f"target={shlex.quote(path)}; "
+            'if [ ! -e "$target" ]; then printf "path not found: %s\\n" "$target" >&2; exit 1; fi; '
+            'if [ -f "$target" ]; then '
+            'find "$target" -maxdepth 0 -printf "%y %s %p\\n"; '
+            "else "
+            'find "$target" -mindepth 1 -maxdepth 2 -printf "%y %s %p\\n" | sort | head -n 200; '
+            "fi"
+        )
+        self.maker_place.append_event("tool_call", self.wake_id, tool="list_files", path=path)
+        result = self.sandbox.exec_bash(command)
+        summary = result.for_tool(self.max_tool_output_chars)
+        if self.maker_place.store_raw_outputs:
+            raw_name = f"{call_index:04d}-list_files"
+            summary["raw_stdout_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stdout.txt", result.stdout)
+            summary["raw_stderr_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stderr.txt", result.stderr)
+        self.maker_place.append_event(
+            "list_files_result",
+            self.wake_id,
+            path=path,
+            exit_code=result.exit_code,
+            timed_out=result.timed_out,
+            elapsed_seconds=result.elapsed_seconds,
+            stdout=summary["stdout"],
+            stderr=summary["stderr"],
+        )
+        return {
+            "ok": result.exit_code == 0 and not result.timed_out,
+            "path": path,
+            "listing": summary["stdout"],
+            **summary,
+        }
+
+    def _read_file(self, args: dict[str, Any], call_index: int) -> dict[str, Any]:
+        try:
+            path = safe_world_relative_path(args.get("path", ""))
+        except ValueError as exc:
+            result = {"ok": False, "error": str(exc)}
+            self.maker_place.append_event(
+                "tool_call_error",
+                self.wake_id,
+                tool="read_file",
+                arguments=args,
+                error=result["error"],
+            )
+            return result
+
+        command = (
+            f"target={shlex.quote(path)}; "
+            'if [ ! -f "$target" ]; then printf "not a regular file: %s\\n" "$target" >&2; exit 1; fi; '
+            f'head -c {self.max_tool_output_chars + 1} -- "$target"'
+        )
+        self.maker_place.append_event("tool_call", self.wake_id, tool="read_file", path=path)
+        result = self.sandbox.exec_bash(command)
+        summary = result.for_tool(self.max_tool_output_chars)
+        if self.maker_place.store_raw_outputs:
+            raw_name = f"{call_index:04d}-read_file"
+            summary["raw_stdout_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stdout.txt", result.stdout)
+            summary["raw_stderr_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stderr.txt", result.stderr)
+        self.maker_place.append_event(
+            "read_file_result",
+            self.wake_id,
+            path=path,
+            exit_code=result.exit_code,
+            timed_out=result.timed_out,
+            elapsed_seconds=result.elapsed_seconds,
+            stdout=summary["stdout"],
+            stderr=summary["stderr"],
+        )
+        return {
+            "ok": result.exit_code == 0 and not result.timed_out,
+            "path": path,
+            "text": summary["stdout"],
             **summary,
         }
 

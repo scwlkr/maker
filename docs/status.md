@@ -16,8 +16,8 @@ This file is the compact source of truth for current Maker behavior.
 - Wake lock behavior that skips a new wake while another wake is active.
 - Model clients for OpenRouter, Ollama, and a local mock model.
 - Model fallback attempts for the configured provider.
-- Native tool schemas for `shell`, `write_file`, `search`, `fetch`, and
-  `sleep_or_finish`.
+- Native tool schemas for `shell`, `write_file`, `list_files`, `read_file`,
+  `search`, `fetch`, and `sleep_or_finish`.
 - Repeated text-only model responses end the wake after three consecutive
   responses without tool calls.
 - `fetch` blocks localhost, private, link-local, multicast, reserved,

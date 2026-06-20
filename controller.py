@@ -779,6 +779,13 @@ def tool_schemas_for_mode(mode: str) -> list[dict[str, Any]]:
         return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "shell"]
     if normalized in {"write", "write-file", "write-only"}:
         return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "write_file"]
+    if normalized in {"files", "file", "file-only", "world-files"}:
+        by_name = {
+            schema.get("function", {}).get("name"): schema
+            for schema in TOOL_SCHEMAS
+            if isinstance(schema.get("function"), dict)
+        }
+        return [by_name[name] for name in ["list_files", "read_file", "write_file"] if name in by_name]
     raise ValueError(f"unknown TOOL_SCHEMA_MODE: {mode}")
 
 

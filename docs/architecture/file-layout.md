@@ -6,7 +6,7 @@
 - `maker_place.py`: event log, wake summaries, snapshots, lock handling.
 - `sandbox.py`: Docker image, container, volume, shell, stdin, snapshot, inspect,
   stop.
-- `tools.py`: tool schemas, shell/write_file/search/fetch execution, tool result
+- `tools.py`: tool schemas, shell/file/search/fetch execution, tool result
   messages.
 
 ## CLI
