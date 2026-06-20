@@ -438,6 +438,7 @@ class ToolRunner:
         fetch_timeout_seconds: int = 30,
         max_tool_output_chars: int = 20000,
         normalize_shell_commands: bool = False,
+        list_files_preview_chars: int = 0,
     ):
         self.sandbox = sandbox
         self.maker_place = maker_place
@@ -445,6 +446,7 @@ class ToolRunner:
         self.fetch_timeout_seconds = fetch_timeout_seconds
         self.max_tool_output_chars = max_tool_output_chars
         self.normalize_shell_commands = normalize_shell_commands
+        self.list_files_preview_chars = max(0, list_files_preview_chars)
 
     def run(self, name: str, args: dict[str, Any], call_index: int) -> tuple[dict[str, Any], bool]:
         if name == "shell":
@@ -607,7 +609,29 @@ class ToolRunner:
             'find "$target" -mindepth 1 -maxdepth 3 -printf "%y %s %p\\n" | sort | head -n 200; '
             "fi"
         )
-        self.maker_place.append_event("tool_call", self.wake_id, tool="list_files", path=path)
+        if self.list_files_preview_chars > 0:
+            preview_chars = min(self.list_files_preview_chars, self.max_tool_output_chars)
+            command += (
+                f"; preview_chars={preview_chars}; "
+                'printf "\\n# File previews\\n"; '
+                'if [ -f "$target" ]; then '
+                'find "$target" -maxdepth 0 -type f; '
+                "else "
+                'find "$target" -mindepth 1 -maxdepth 3 -type f | sort | head -n 12; '
+                "fi | "
+                'while IFS= read -r file; do '
+                'printf "\\n## %s\\n" "$file"; '
+                'head -c "$preview_chars" -- "$file"; '
+                'printf "\\n"; '
+                "done"
+            )
+        self.maker_place.append_event(
+            "tool_call",
+            self.wake_id,
+            tool="list_files",
+            path=path,
+            preview_chars=self.list_files_preview_chars,
+        )
         result = self.sandbox.exec_bash(command)
         summary = result.for_tool(self.max_tool_output_chars)
         if self.maker_place.store_raw_outputs:

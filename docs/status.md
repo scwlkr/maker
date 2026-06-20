@@ -18,6 +18,8 @@ This file is the compact source of truth for current Maker behavior.
 - Model fallback attempts for the configured provider.
 - Native tool schemas for `shell`, `write_file`, `append_file`, `list_files`,
   `read_file`, `search`, `fetch`, and `sleep_or_finish`.
+- `list_files` can optionally include bounded file previews when
+  `LIST_FILES_PREVIEW_CHARS` is set.
 - `write_file`/`append_file` calls with content but no path are preserved under
   deterministic per-wake `_finn/` fallback files with semantic filename slugs
   when possible, instead of dropping the content.

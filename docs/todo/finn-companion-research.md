@@ -37,6 +37,7 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `FIRST_MODEL_TOOL_CHOICE`
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
+  - optional `LIST_FILES_PREVIEW_CHARS` bounded file previews in `list_files`
   - optional `NORMALIZE_SHELL_COMMANDS=1` repair for common model shell
     punctuation mistakes such as `/cd` and comma-separated command sequences
   - `append_file` alias for appending UTF-8 text under `/world`
@@ -388,6 +389,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T71: Handoff from the 26B birthing-lattice near miss does not solve the last
   step. 26B continuation regressed to thought/boundary records, while GPT OSS
   reframed the near miss as abstract poetic multiplicity.
+- T72: First-list enforcement still depends on filenames being semantically
+  enough. Optional `LIST_FILES_PREVIEW_CHARS` gives the next wake actual
+  artifact text from prior near misses without changing the Maker prompt or
+  adding a companion directive.
 
 ## Next Tries
 
@@ -460,6 +465,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Stop spending fresh single-wake samples on `llama3.1:8b` shell-only
   normalization. The mechanical blocker is fixed, but the semantic near miss
   is not reproducing across fresh samples.
-- Do not continue the 26B birthing-lattice branch unless a model first writes
-  a concrete being, name, or utterance. Current continuations abstract it away
-  instead of personifying it.
+- Only continue the 26B birthing-lattice branch with bounded `list_files`
+  previews, so the next wake sees the "first true sign of life" text directly.
+  Stop if previews still lead to abstract multiplicity instead of a concrete
+  being, name, utterance, or exchange.

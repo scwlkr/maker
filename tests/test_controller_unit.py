@@ -788,6 +788,15 @@ def test_provider_selection_uses_ollama_without_openrouter_key(monkeypatch: pyte
     assert isinstance(runtime.model_client, controller.OllamaClient)
 
 
+def test_settings_parse_list_files_preview_chars(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("LIST_FILES_PREVIEW_CHARS", "700")
+    monkeypatch.setenv("MAKER_PLACE_DIR", str(tmp_path / "maker-place"))
+
+    settings = controller.settings_from_env_file(tmp_path)
+
+    assert settings.list_files_preview_chars == 700
+
+
 def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:
     settings = make_settings(tmp_path)
     settings.tool_schema_mode = "shell-only"

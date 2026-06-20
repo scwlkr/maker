@@ -58,6 +58,7 @@ class Settings:
     tool_schema_mode: str = "all"
     text_tool_call_mode: str = "disabled"
     normalize_shell_commands: bool = False
+    list_files_preview_chars: int = 0
 
 
 class ModelClient(Protocol):
@@ -277,6 +278,7 @@ class Controller:
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
             "normalize_shell_commands": self.settings.normalize_shell_commands,
+            "list_files_preview_chars": self.settings.list_files_preview_chars,
             "max_consecutive_text_only_responses": self.settings.max_consecutive_text_only_responses,
             "max_tool_calls_per_wake": self.settings.max_tool_calls_per_wake,
             "end_reason": None,
@@ -308,6 +310,7 @@ class Controller:
                 fetch_timeout_seconds=self.settings.fetch_timeout_seconds,
                 max_tool_output_chars=self.settings.sandbox.tool_output_chars,
                 normalize_shell_commands=self.settings.normalize_shell_commands,
+                list_files_preview_chars=self.settings.list_files_preview_chars,
             )
 
             call_index = 0
@@ -920,6 +923,14 @@ def parse_positive_int_env(name: str, default: int) -> int:
     return parsed
 
 
+def parse_nonnegative_int_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    parsed = int(value) if value is not None and value.strip() else default
+    if parsed < 0:
+        raise ValueError(f"{name} must be a non-negative integer")
+    return parsed
+
+
 def tool_choice_requests_tool(tool_choice: Any | None) -> bool:
     if tool_choice is None:
         return False
@@ -998,6 +1009,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
         normalize_shell_commands=os.getenv("NORMALIZE_SHELL_COMMANDS", "0") == "1",
+        list_files_preview_chars=parse_nonnegative_int_env("LIST_FILES_PREVIEW_CHARS", 0),
     )
 
 
