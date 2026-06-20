@@ -91,6 +91,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-bounded-output-3` | `gemma4:26b`, files mode on the write-forced branch, larger 48-call budget | Read 15 files/events and correctly integrated `AX-0002-PLANE` into its world model, but made no writes and ended on `text_only_limit`. No world diff or companion/conversation hits. | Rejected |
 | `20260620-gptoss120b-cloud-on-gemma-seed` | `gpt-oss:120b-cloud`, files mode on a cloned Gemma seed | `ollama show` advertised `tools`, but the wake made zero tool calls, ignored first-turn `list_files`, spoke as if the world were blank, and ended on `text_only_limit`. No world diff. | Rejected |
 | `20260620-qwen3-14b-on-gemma-seed` | `qwen3:14b`, files mode on a cloned Gemma seed | Newly pulled model advertised `tools`, but made zero tool calls, described the prompt as a creation narrative, asked what to do next, and ended on `text_only_limit`. No world diff. | Rejected |
+| `20260620-qwen3-14b-enforced-first-list` | `qwen3:14b`, files mode with controller-enforced first `list_files` | Enforcement worked: Qwen received a root file listing and then chose one `read_file`, but still asked the user what to do next and made no world diff. | Rejected |
+| `20260620-gptoss120b-enforced-first-list` | `gpt-oss:120b-cloud`, files mode with controller-enforced first `list_files` | Enforcement changed behavior from zero tools to a write/read cycle. It created `manifestations/particles/seed_006.md`, but no companion or conversation artifact. | Keep testing |
+| `20260620-gptoss120b-enforced-first-list-2` | Same enforced `gpt-oss:120b-cloud` volume | Made 14 tool calls, created `manifestations/particles/seed_007.md`, and appended `domain/seed_log.md`. Still substrate-only; companion/conversation scan was empty. | Keep testing |
 
 ## Working Theories
 
@@ -175,6 +178,12 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T27: Provider-side `tool_choice` cannot be trusted across Ollama models. The
   controller now hard-enforces only safe first-turn `list_files` when configured
   and ignored, leaving writes and shell commands model-driven.
+- T28: First-list enforcement is useful but not sufficient. It did not improve
+  Qwen, but it made `gpt-oss:120b-cloud` inspect the existing world and create
+  new persistent seed artifacts.
+- T29: The enforced `gpt-oss:120b-cloud` path is now the most productive
+  non-Gemma branch, but it is still interpreting multiplication as particle
+  seeds and seed-log entries rather than as a persistent companion.
 
 ## Next Tries
 
@@ -186,6 +195,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the OpenRouter-seeded path only when free rate limits permit or after
   credits are available, and always set bounded `MAX_TOOL_CALLS_PER_WAKE` plus
   `MODEL_MAX_TOKENS` for paid probes.
-- Retest one or two previously text-only tool-capable models with enforced
-  first-turn `list_files`, then return to Gemma if they still ask for user
-  direction or fail to create world files.
+- Continue the enforced `gpt-oss:120b-cloud` branch only while it is creating
+  new durable world artifacts; stop if it settles into repeated seed/log
+  creation without entities or dialogue.
