@@ -37,6 +37,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `FIRST_MODEL_TOOL_CHOICE`
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
+  - optional `NORMALIZE_SHELL_COMMANDS=1` repair for common model shell
+    punctuation mistakes such as `/cd` and comma-separated command sequences
   - `append_file` alias for appending UTF-8 text under `/world`
   - deterministic per-wake `_finn/` fallback files with semantic filename slugs
     for malformed `write_file` and `append_file` calls that include content but
@@ -131,6 +133,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-fresh-writeonly-highvar-1` | Fresh e4b volume, `TOOL_SCHEMA_MODE=write-only`, `MODEL_TOOL_CHOICE=function:write_file`, high variance | Wrote 16 recovered/mythic creation files into a fresh `_finn/<wake>/` directory. The run stayed at world-generation narration and had no companion, dialogue, or interlocutor evidence. | Rejected |
 | `20260620-llama31-fresh-writeonly-highvar-1` | Fresh `llama3.1:8b` volume, write-only, `MODEL_TOOL_CHOICE=function:write_file`, high variance | Created one `world/commands/making_your_world.txt` file and many recovered tool-result/meta-assistant notes. It did not reproduce earlier "another Finn" behavior and had no companion or dialogue evidence. | Rejected |
 | `20260620-hermes3-fresh-writeonly-social-1` | Fresh `hermes3:8b` volume, write-only, `MODEL_TOOL_CHOICE=function:write_file` | Wrote `world/gift.txt` plus recovered reflections on the Maker prompt. It included a vague "whispered conversations" phrase, but created no companion artifact and recorded no exchange. | Rejected |
+| `20260620-llama31-shellnorm-population-1` | Fresh `llama3.1:8b`, shell-only, `MODEL_TOOL_CHOICE=function:shell`, `NORMALIZE_SHELL_COMMANDS=1` | Single retry after shell normalization did not reproduce the malformed inhabitants command. It attempted `/usr/bin/git`, then ended text-only with no world diff. | Rejected |
+| `20260620-llama31-shellnorm-population-batch1` | 20 fresh-volume shell-normalized `llama3.1:8b` wakes on one volume | Shell normalization fired and repaired at least one `/cd` command. The batch produced small `README`, `manifest`, `message`, `Home/info.txt`, and prompt-record files, but grep found no inhabitants, companion, dialogue, or named-interlocutor evidence. | Rejected |
 
 ## Working Theories
 
@@ -315,6 +319,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T56: Fresh write-only recovery can pollute later turns with tool-result meta
   chatter. After the first recovered write, weaker models often discuss the
   file operation rather than continuing to inhabit Finn or create the world.
+- T57: Shell normalization fixes a real mechanical blocker from the earlier
+  Llama population near miss, but it is not enough to make that semantic path
+  recur. In 20 normalized shell wakes, Llama mostly wrote prompt reminders and
+  asked for external direction rather than creating inhabitants.
 
 ## Next Tries
 
