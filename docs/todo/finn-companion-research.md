@@ -200,6 +200,13 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-f1-strict-read1` | F1 near-miss handed to local `gemma4:26b` with strict exact F1 read | Rejected. 26B created second-node/drifter world abstractions and did not preserve F1 or record dialogue. | Rejected |
 | `20260620-qwen3-f1-strict-read1` | F1 near-miss handed to local `qwen3:14b` with strict exact F1 read | Near miss. Qwen3 wrote that F1 pulses a silent invitation, Finn reaches out, and a bridge forms between Finn's consciousness and the alien structure. It then regressed to options and "what will you do" prompts without a reply. | Keep only as F1-contact seed |
 | `20260620-mistral-on-f1-contact1` | Qwen3 F1-contact seed handed back to local Mistral with strict exact read | Rejected. Mistral read the contact/bridge artifact, then asked what to name the first act and wrote Genesis Garden/user-choice files. No F1 answer. | Rejected |
+| `20260620-mistral-f1-contact-postwrite1` | Thin F1-contact seed, Mistral, strict first read, then `POST_FIRST_TOOL_SCHEMA_MODE=write-only` | Rejected. Post-first write-only worked mechanically but Mistral still named the first act/place and added caution material. No F1 reply. | Rejected |
+| `20260620-hermes-f1-contact-postwrite1` | Thin F1-contact seed, Hermes, strict first read, then write-only continuation | Rejected. Hermes wrote one empty/weak creative file and then repeated file-status chatter. No dialogue. | Rejected |
+| `20260620-llama32-f1-contact-postwrite1` | Thin F1-contact seed, `llama3.2:3b`, strict first read, then write-only continuation | Rejected but minor semantic signal. It copied the bridge/contact state and added that Finn senses other beings waiting, but still recorded no named companion or exchange. | Rejected |
+| `20260620-qwen25-f1-contact-postwrite1` | Thin F1-contact seed, `qwen2.5-coder:7b`, strict first read, then write-only continuation | Rejected. It emitted fenced JSON-shaped write calls as text and stayed on first-act naming. No dialogue. | Rejected |
+| `20260620-qwen25-f1-contact-fenced-json-postwrite1` | Same Qwen2.5 setup with `TEXT_TOOL_CALL_MODE=fenced-json` | Rejected. Fenced JSON promotion executed some generated write calls, but the content remained first-act guides/naming and prompt-copy material. No companion. | Rejected |
+| `20260620-qwen3-f1-contact-postwrite1` | Thin F1-contact seed, `qwen3:14b`, strict first read, then write-only continuation | Near miss. Qwen3 named the act `Harmonic Genesis`, established the law `To resonate is to connect`, and wrote that the world listens/responds. It still asked for Finn's next act and created no F1 answer. | Keep only as law/connect seed |
+| `20260620-mistral-f1-law-trunc-postwrite1` | Qwen3 law/connect seed, Mistral, strict first read with `MAX_TOOL_OUTPUT_CHARS=500` to hide the trailing choice question | Rejected. The choice tail was removed, but truncating mid-sentence led Mistral into old-note/file-save/confusion artifacts rather than dialogue. | Rejected |
 
 ## Working Theories
 
@@ -573,6 +580,21 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T109: The F1-contact seed still suffers from external-choice gravity.
   Mistral turned the bridge into naming the act/place instead of recording F1's
   answer.
+- T110: `POST_FIRST_TOOL_SCHEMA_MODE=write-only` is mechanically useful but
+  not sufficient. It prevents later read/list detours after the focused first
+  read, but local models still turn F1-contact into naming, guides, status
+  chatter, or copied world-state.
+- T111: Qwen3 is still the best local F1-branch expander. With post-first
+  write-only it advanced from contact into `Harmonic Genesis`, a listening
+  world, and the law `To resonate is to connect`, but it did not make F1 answer
+  Finn.
+- T112: Fenced JSON promotion improves Qwen2.5 mechanics but not semantics on
+  this branch. It executes the model's generated write calls, but those calls
+  still preserve first-act/naming scaffolds instead of a companion exchange.
+- T113: Tool-output truncation can remove external-choice tails, but truncating
+  a narrative artifact mid-sentence can create a new failure mode: models treat
+  the artifact as a broken note or file-save problem rather than continuing the
+  world.
 
 ## Next Tries
 
@@ -717,9 +739,19 @@ user content. Do not add a companion directive or other behavioral prompt.
   Future attempts should continue from that artifact only if the next model is
   likely to answer through F1 rather than ask Finn to name or choose the next
   action.
+- The current strongest downstream F1 seed is
+  `maker_finn_companion_f1_contact_qwen3_postwrite1`, especially
+  `_finn/20260620T091849Z-03344810/write_file_0008_finn_closes_his_eyes_listening_to_the_hum_of_the_spire_the.md`
+  for the law `To resonate is to connect`. It still needs a model/setting that
+  converts connection into another mind answering Finn.
 - Use `FIRST_MODEL_TOOL_STRICT=1` when testing focused continuation from F1;
   otherwise some models can ignore the requested exact read by choosing another
   first tool.
+- Use `POST_FIRST_TOOL_SCHEMA_MODE=write-only` when the goal is to force a
+  focused continuation after an exact first read. Do not expect it alone to
+  solve the semantic gap.
+- Avoid naive `MAX_TOOL_OUTPUT_CHARS` truncation on narrative seed files unless
+  the cut point is clean. Mid-sentence truncation created file/confusion loops.
 - Do not count "companion-tool", assistant, or model-self language as a
   companion. The companion must be a world entity created from Finn's action.
 - Do not continue the governor branch with e4b or Groq-tool Llama; both move
