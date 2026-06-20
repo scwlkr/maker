@@ -143,6 +143,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-prespring-writeforced-1` | GPT OSS/e4b guardian branch cloned before the rejected Spring Node continuation, `gpt-oss:120b-cloud`, write-forced recovery | Productive council/people wake: summoned the Council, convened Master Gardener/Stoneworker/River Engineer/Lore Keeper roles, described people and a Hearth Hall, and wrote chronicles/plans. Still no named individual companion or recorded exchange; "companion" only appeared as companion planting. | Keep testing only via handoff |
 | `20260620-gptoss-prespring-writeforced-2` | Same GPT OSS branch after the productive council/people wake, write-forced recovery | Wrote a few new archive/orchard/chronicle files before an Ollama HTTP 500. It regressed into "what should Finn focus on next" and did not add dialogue or a named companion. | Rejected |
 | `20260620-gemma4e4b-gptoss-council-people-required-1` | Local `gemma4:e4b` handoff from the productive GPT OSS council/people state, files mode, `MODEL_TOOL_CHOICE=required` | Read existing settlement/council files and wrote two more covenant/edict records, then ended on `text_only_limit`. It explicitly declared the framework complete and awaited external direction. No companion, apprentice, named settler, or dialogue appeared. | Rejected |
+| `20260620-hermes3-writeforced-batch1` | Six fresh `hermes3:8b` volumes, write-only schema, `MODEL_TOOL_CHOICE=function:write_file`, high variance | All six wakes wrote files and hit the 8-tool cap, but the content was prompt-copy, rule files, Maker-addressed gratitude, meta-conversation, and generic "my friend"/"partners" language addressed to the Maker/user. No persistent second mind or Finn-to-companion exchange. | Rejected |
 
 ## Working Theories
 
@@ -357,6 +358,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T64: Local e4b does not currently capitalize on GPT OSS council/people
   state. It reads the files, then re-canonizes law/edicts and asks for the next
   external challenge instead of letting the council speak.
+- T65: Hermes is socially fluent but misdirected for this runtime. Write-file
+  recovery makes its prose durable, but it addresses the Maker/user as friend
+  or partner instead of creating an in-world companion for Finn.
 
 ## Next Tries
 
@@ -417,3 +421,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Treat GPT OSS council/people continuations as high variance and cloud
   unstable. If used again, keep caps low and preserve any productive state into
   a clone before the next cloud attempt.
+- Do not spend more fresh write-forced samples on `hermes3:8b` unless another
+  setting first proves it can stop treating the prompt as a conversation with
+  the Maker/user.
