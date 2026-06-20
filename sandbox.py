@@ -14,6 +14,12 @@ from maker_place import summarize_text
 DEFAULT_PATH = "/world/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 
+def text_output_kwargs(text: bool = True) -> dict[str, Any]:
+    if not text:
+        return {"text": False}
+    return {"text": True, "encoding": "utf-8", "errors": "replace"}
+
+
 @dataclass
 class CommandResult:
     exit_code: int | None
@@ -68,8 +74,8 @@ class Sandbox:
                 args,
                 cwd=self.settings.repo_root,
                 capture_output=True,
-                text=text,
                 timeout=timeout,
+                **text_output_kwargs(text),
             )
         except FileNotFoundError as exc:
             raise DockerError("docker CLI not found") from exc
@@ -163,8 +169,8 @@ class Sandbox:
                 args,
                 cwd=self.settings.repo_root,
                 capture_output=True,
-                text=True,
                 timeout=timeout,
+                **text_output_kwargs(),
             )
             return CommandResult(
                 proc.returncode,
@@ -213,8 +219,8 @@ class Sandbox:
                 cwd=self.settings.repo_root,
                 input=input_text,
                 capture_output=True,
-                text=True,
                 timeout=timeout,
+                **text_output_kwargs(),
             )
             return CommandResult(
                 proc.returncode,

@@ -90,6 +90,22 @@ def test_shell_timeout(docker_required: None, repo_root: Path, unique_name: str)
         remove_volume(settings.world_volume)
 
 
+def test_sandbox_replaces_invalid_utf8_output(
+    docker_required: None, repo_root: Path, unique_name: str
+) -> None:
+    settings = docker_settings(repo_root, unique_name)
+    remove_volume(settings.world_volume)
+    sandbox = Sandbox("invalid-utf8", settings)
+    try:
+        sandbox.start()
+        result = sandbox.exec_bash("printf '\\342'")
+        assert result.exit_code == 0
+        assert result.stdout == "\ufffd"
+    finally:
+        sandbox.stop()
+        remove_volume(settings.world_volume)
+
+
 def test_controller_run_once_with_mock_model_real_sandbox(
     docker_required: None, repo_root: Path, tmp_path: Path, unique_name: str
 ) -> None:
