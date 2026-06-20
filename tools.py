@@ -313,10 +313,38 @@ def safe_default_path_part(value: str, fallback: str) -> str:
     return safe or fallback
 
 
-def default_write_path(tool_name: str, wake_id: str, call_index: int) -> str:
+def content_slug_part(content: str, max_length: int = 64) -> str:
+    for raw_line in content.splitlines():
+        line = raw_line.strip().strip("#*`-=|:[](){}<> ")
+        if not line or not any(ch.isalnum() for ch in line):
+            continue
+        parts: list[str] = []
+        previous_was_separator = False
+        for ch in line.lower():
+            if "a" <= ch <= "z" or "0" <= ch <= "9":
+                parts.append(ch)
+                previous_was_separator = False
+            elif not previous_was_separator:
+                parts.append("_")
+                previous_was_separator = True
+        slug = "".join(parts).strip("_")
+        if not slug:
+            continue
+        if len(slug) > max_length:
+            slug = slug[:max_length].rstrip("_")
+            boundary = slug.rfind("_")
+            if boundary >= max_length // 2:
+                slug = slug[:boundary]
+        return slug
+    return ""
+
+
+def default_write_path(tool_name: str, wake_id: str, call_index: int, content: str = "") -> str:
     safe_tool_name = safe_default_path_part(tool_name, "tool")
     safe_wake_id = safe_default_path_part(wake_id, "wake")
-    return f"_finn/{safe_wake_id}/{safe_tool_name}_{call_index:04d}.md"
+    slug = content_slug_part(content)
+    suffix = f"_{slug}" if slug else ""
+    return f"_finn/{safe_wake_id}/{safe_tool_name}_{call_index:04d}{suffix}.md"
 
 
 class ToolRunner:
@@ -391,7 +419,7 @@ class ToolRunner:
             path = safe_world_relative_path(args.get("path", ""))
         except ValueError as exc:
             if str(exc) == "path is required" and content:
-                path = default_write_path(tool_name, self.wake_id, call_index)
+                path = default_write_path(tool_name, self.wake_id, call_index, content)
                 self.maker_place.append_event(
                     "write_file_path_defaulted",
                     self.wake_id,

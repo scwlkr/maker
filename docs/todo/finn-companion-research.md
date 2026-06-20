@@ -38,8 +38,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
   - `append_file` alias for appending UTF-8 text under `/world`
-  - deterministic per-wake `_finn/` fallback files for malformed `write_file`
-    and `append_file` calls that include content but omit a usable path
+  - deterministic per-wake `_finn/` fallback files with semantic filename slugs
+    for malformed `write_file` and `append_file` calls that include content but
+    omit a usable path
   - ignored `MODEL_TOOL_CHOICE=function:write_file` and
     `function:append_file` text recovery, preserving provider text through the
     requested file tool

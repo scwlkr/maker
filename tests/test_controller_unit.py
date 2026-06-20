@@ -374,7 +374,7 @@ def test_ignored_write_file_choice_preserves_text_as_fallback_write(
     assert first_call["id"] == "enforced-write_file-text-1"
     assert first_call["arguments"] == {"content": "preserve this ignored write\n"}
     assert first_call["result"]["path"].startswith("_finn/")
-    assert first_call["result"]["path"].endswith("/write_file_0001.md")
+    assert first_call["result"]["path"].endswith("/write_file_0001_preserve_this_ignored_write.md")
     assert FakeSandbox.commands
     events = (settings.maker_place_dir / "events.jsonl").read_text()
     assert "file_tool_choice_text_enforced" in events

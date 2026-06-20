@@ -19,8 +19,8 @@ This file is the compact source of truth for current Maker behavior.
 - Native tool schemas for `shell`, `write_file`, `append_file`, `list_files`,
   `read_file`, `search`, `fetch`, and `sleep_or_finish`.
 - `write_file`/`append_file` calls with content but no path are preserved under
-  deterministic per-wake `_finn/` fallback files instead of dropping the
-  content.
+  deterministic per-wake `_finn/` fallback files with semantic filename slugs
+  when possible, instead of dropping the content.
 - If `MODEL_TOOL_CHOICE=function:write_file` or `function:append_file` is
   configured and a provider returns text instead of the requested file tool,
   the controller preserves that text through the requested file tool.
