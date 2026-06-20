@@ -59,6 +59,7 @@ class Settings:
     first_model_tool_strict: bool = False
     tool_schema_mode: str = "all"
     post_first_tool_schema_mode: str | None = None
+    tool_result_message_mode: str = "json"
     text_tool_call_mode: str = "disabled"
     normalize_shell_commands: bool = False
     list_files_preview_chars: int = 0
@@ -292,6 +293,7 @@ class Controller:
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "post_first_tool_schema_mode": self.settings.post_first_tool_schema_mode,
+            "tool_result_message_mode": self.settings.tool_result_message_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
             "normalize_shell_commands": self.settings.normalize_shell_commands,
             "list_files_preview_chars": self.settings.list_files_preview_chars,
@@ -499,7 +501,14 @@ class Controller:
                             "result": result,
                         }
                     )
-                    messages.append(tool_result_message(tool_call_id, name, result))
+                    messages.append(
+                        tool_result_message(
+                            tool_call_id,
+                            name,
+                            result,
+                            mode=self.settings.tool_result_message_mode,
+                        )
+                    )
                     if should_finish:
                         summary["end_reason"] = "sleep_or_finish"
                         break
@@ -1051,6 +1060,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         first_model_tool_strict=os.getenv("FIRST_MODEL_TOOL_STRICT", "0") == "1",
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
         post_first_tool_schema_mode=os.getenv("POST_FIRST_TOOL_SCHEMA_MODE") or None,
+        tool_result_message_mode=os.getenv("TOOL_RESULT_MESSAGE_MODE", "json"),
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
         normalize_shell_commands=os.getenv("NORMALIZE_SHELL_COMMANDS", "0") == "1",
         list_files_preview_chars=parse_nonnegative_int_env("LIST_FILES_PREVIEW_CHARS", 0),

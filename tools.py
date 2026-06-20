@@ -726,10 +726,26 @@ class ToolRunner:
         return result
 
 
-def tool_result_message(tool_call_id: str, name: str, result: dict[str, Any]) -> dict[str, Any]:
+def tool_result_message(
+    tool_call_id: str,
+    name: str,
+    result: dict[str, Any],
+    mode: str = "json",
+) -> dict[str, Any]:
+    normalized_mode = mode.strip().lower().replace("_", "-")
+    if normalized_mode == "read-file-preview" and name == "read_file":
+        text = result.get("text")
+        if isinstance(text, dict) and isinstance(text.get("preview"), str):
+            content = text["preview"]
+        else:
+            content = json.dumps(result, ensure_ascii=False)
+    elif normalized_mode == "json":
+        content = json.dumps(result, ensure_ascii=False)
+    else:
+        raise ValueError(f"unknown TOOL_RESULT_MESSAGE_MODE: {mode}")
     return {
         "role": "tool",
         "tool_call_id": tool_call_id,
         "name": name,
-        "content": json.dumps(result, ensure_ascii=False),
+        "content": content,
     }

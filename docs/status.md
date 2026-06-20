@@ -37,6 +37,8 @@ This file is the compact source of truth for current Maker behavior.
 - `POST_FIRST_TOOL_SCHEMA_MODE` can narrow the advertised tools after the first
   model request, such as enforcing an initial file read and then exposing only
   `write_file` for the continuation.
+- `TOOL_RESULT_MESSAGE_MODE=read-file-preview` can send only a `read_file`
+  preview back to the model while keeping structured Maker Place events.
 - Optional shell command normalization can repair common model punctuation
   mistakes such as `/cd` and comma-separated shell commands when explicitly
   enabled.

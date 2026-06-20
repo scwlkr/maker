@@ -14,6 +14,7 @@ from tools import (
     fetch_public_url,
     normalize_model_shell_command,
     safe_world_relative_path,
+    tool_result_message,
 )
 
 
@@ -297,3 +298,34 @@ def test_read_file_tool_rejects_unsafe_path(tmp_path: Path) -> None:
     assert result["ok"] is False
     assert "path cannot" in result["error"]
     assert sandbox.command == ""
+
+
+def test_tool_result_message_can_send_read_file_preview_only() -> None:
+    result = {
+        "ok": True,
+        "path": "memory.md",
+        "text": {"bytes": 18, "preview": "Finn remembers.", "truncated": False},
+        "stdout": {"bytes": 18, "preview": "Finn remembers.", "truncated": False},
+    }
+
+    message = tool_result_message(
+        "call-1",
+        "read_file",
+        result,
+        mode="read-file-preview",
+    )
+
+    assert message == {
+        "role": "tool",
+        "tool_call_id": "call-1",
+        "name": "read_file",
+        "content": "Finn remembers.",
+    }
+
+
+def test_tool_result_message_keeps_json_by_default() -> None:
+    result = {"ok": True, "path": "memory.md"}
+
+    message = tool_result_message("call-1", "read_file", result)
+
+    assert message["content"] == '{"ok": true, "path": "memory.md"}'

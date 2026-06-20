@@ -935,6 +935,15 @@ def test_settings_parse_first_model_tool_args(monkeypatch: pytest.MonkeyPatch, t
     assert settings.post_first_tool_schema_mode == "write-only"
 
 
+def test_settings_parse_tool_result_message_mode(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("TOOL_RESULT_MESSAGE_MODE", "read-file-preview")
+    monkeypatch.setenv("MAKER_PLACE_DIR", str(tmp_path / "maker-place"))
+
+    settings = controller.settings_from_env_file(tmp_path)
+
+    assert settings.tool_result_message_mode == "read-file-preview"
+
+
 def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:
     settings = make_settings(tmp_path)
     settings.tool_schema_mode = "shell-only"
