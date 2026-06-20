@@ -127,6 +127,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-required-on-e4b-cdf09fa3` | `gemma4:26b`, files mode on a clone of the evolved e4b required-tool world | First-list enforcement worked and the model read the Covenant and active plan, but it wrote nothing, repeated "critical path" until length, then returned repeated Maker-acknowledgement prose. Zero diff and no new companion/dialogue evidence. | Rejected |
 | `20260620-gemma4e4b-required-semantic-fallback` | Same e4b volume after semantic fallback names, files mode, `MODEL_TOOL_CHOICE=required` | Validated semantic fallback filenames and added `Initial_Development_Plan.txt`, `Genesis_Stability_Phase2_Directive.txt`, Day 1/Day 2 site logs, and an Academy directive with student-mentor/apprenticeship structures. This is the closest structural move toward another mind, but still no named companion or recorded dialogue. | Keep testing |
 | `20260620-gemma4e4b-academy-continuation-1` | Same e4b Academy volume, files mode, `MODEL_TOOL_CHOICE=required` | Read Academy/material/geology context and created `Alpha_Site_01_FieldLog.md` plus a semantic fallback field-log header. It moved from curriculum into Alpha-Site field execution and team/commander language, but new files had no companion, dialogue, or named interlocutor evidence. | Keep testing only while field execution continues |
+| `20260620-gemma4e4b-field-writeforced-1` | Same e4b field volume, files mode, `MODEL_TOOL_CHOICE=function:write_file`, 20-call cap | Text recovery wrote 13 per-wake fallback files and updated `Covenant_of_Action.txt`, but the branch regressed to Master Stewardship/Genesis Stability planning. New wake grep found no companion, dialogue, student, apprentice, mentor, or named-interlocutor evidence. | Rejected |
 
 ## Working Theories
 
@@ -297,6 +298,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   field execution. The latest wake created an Alpha-Site field log and began
   assigning teams under a commander role, but still treats other agents as
   functional detachments rather than persistent named minds.
+- T53: Write-forced recovery on the field branch captures otherwise lost prose,
+  but it also amplifies planning/stewardship loops and can overwrite important
+  directive files. It should be rejected for this branch unless the live text is
+  already naming independent agents or recording dialogue.
 
 ## Next Tries
 
@@ -322,6 +327,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   durable operational records. Watch for the transition from anonymous teams
   and detachments into named apprentices, coordinators, witnesses, or a voice
   Finn talks with.
+- Do not continue the current e4b field branch in write-forced mode unless a
+  new run has already moved into named agents or dialogue. The latest
+  write-forced wake reverted to stewardship planning and produced no companion
+  signals.
 - Retry write-forced branches after ignored-write-choice text recovery, because
   text-only near misses and plans can now persist as world artifacts without
   adding any model-facing instruction.
