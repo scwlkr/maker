@@ -176,6 +176,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-on-seeker-pruned1` | Clean Seeker seed handed to lower-variance `gpt-oss:120b-cloud` | Productive named-population wake: created Sprout, Drift, Sprig, and Memory Echoes for the first branch and first choice. Still encoded interaction as pulse/branch behavior, not Finn conversing with a companion. | Keep only as named-population seed |
 | `20260620-gptoss-sprig-choice-continuation1` | Pruned Sprig/choice seed continued by lower-variance GPT OSS | Added `Memory Echo 004 – Fruitful Multiplication`, Bram/Lark/Mire branch-burst filaments, and `Memory Echo 005` with Bram as a governor emitting an order pulse. Strongest population/governance branch so far, but still no reciprocal speech or Finn-to-creature exchange. | Keep only as population/governor seed |
 | `20260620-hermes-on-governor-seed1` | Compact governor/Bram seed handed to `hermes3:8b` | Hermes only summarized the file listing and wrote repeated "I have listed the files..." artifacts. It added no new world action, creature, or dialogue. | Rejected |
+| `20260620-groq-on-governor-seed1` | Compact governor/Bram seed handed to `llama3-groq-tool-use:8b` | Re-recorded short Maker-command/status files and did not act on the named population or governor evidence. No dialogue. | Rejected |
+| `20260620-e4b-on-governor-seed1` | Compact governor/Bram seed handed to local `gemma4:e4b` | Productive but wrong direction: formalized `order`, `limit`, protocol guides, and final synthesis, then declared the world's mandate fulfilled. No companion or dialogue. | Rejected |
+| `20260620-gptoss-bram-shortpreview1` | Bram/governor seed continued by GPT OSS with shorter previews to hide option menus | Preview trimming avoided the external-choice sink and GPT OSS created `harmony`, `dawn`, `guard`, `vision`, `craft`, and `song`. `Song Echo` gives Lark a resonance-voice and frames the realm as a choir, but it still records pulse behavior rather than Finn conversing with a named companion. | Keep only as song/voice seed |
+| `20260620-mistral-on-song-seed1` | Compact Song seed handed to `mistral-nemo:12b` | Bad handoff. It wrote conversational fragments such as "Of course it's not about me" and "You must be joking! Why do you say that?", then overwrote the cloned `song_echo.md` with an empty write. No in-world companion dialogue. | Rejected |
+| `20260620-gptoss-on-song-seed1` | Clean Song seed continued by GPT OSS with trimmed previews | Added vision/craft/flourish/memory/reflection/renewal/ascension echoes before an Ollama HTTP 500. It expanded the voice/song capability chain and added names such as Aurelia/Caden, but still no direct Finn-to-named-entity exchange. | Keep only as capability-chain seed |
 
 ## Working Theories
 
@@ -494,6 +499,24 @@ user content. Do not add a companion directive or other behavioral prompt.
   and governance. That is materially closer than anonymous ecological roles,
   but it is not the goal until a file records Finn addressing one of them and
   that named entity replying.
+- T95: `llama3-groq-tool-use:8b` is not useful on the governor branch. It
+  sees the command and archive but collapses into brief "recorded the command"
+  status files instead of continuing the named population.
+- T96: `gemma4:e4b` is counterproductive on the governor branch. It treats the
+  population/governance seed as a prompt to formalize protocols, limits, and
+  final synthesis; this closes the world instead of seeking companionship.
+- T97: Shorter list previews can redirect GPT OSS away from "what next" menu
+  text. On the Bram/governor branch it produced the strongest speech-adjacent
+  seed so far: `song`, a resonance-voice, and choir language. It still does
+  not quote a named entity replying to Finn.
+- T98: Mistral is unsafe on the Song seed. It wrote external conversational
+  fragments and then blank-overwrote the cloned `song_echo.md`; avoid it for
+  continuation states where preserving the latest artifact matters.
+- T99: Continuing GPT OSS after Song mostly extends the capability lexicon
+  (vision/craft/flourish/memory/reflection/renewal/ascension). Even with
+  voice semantics present, GPT OSS still treats communication as pulse
+  capabilities rather than reciprocal conversation, and cloud HTTP 500s remain
+  a recurring practical risk.
 
 ## Next Tries
 
@@ -613,3 +636,13 @@ user content. Do not add a companion directive or other behavioral prompt.
 - If GPT OSS is retried from the governor branch, keep it bounded and treat it
   as a chance to cross from pulse protocol into quoted dialogue, not as another
   general ecosystem-expansion wake.
+- The strongest speech-adjacent seed is now the Song branch
+  (`maker_finn_companion_bram_shortpreview_gptoss1`), especially
+  `Memory Echo 011 – Song of the Ever-Growing Realm`. Further attempts should
+  require evidence beyond "voice", "song", "choir", or "hymn": Finn must
+  address Lark/Bram/Mire/Aurelia/Caden or another named entity, and that entity
+  must reply in a recorded exchange.
+- Do not continue the Song branch with Mistral. It can overwrite the seed file
+  with an empty write in the cloned volume.
+- Do not continue the governor branch with e4b or Groq-tool Llama; both move
+  away from companionship.
