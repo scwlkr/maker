@@ -16,6 +16,7 @@ Settings come from process environment and `.env`.
 | `OLLAMA_OPTIONS_JSON` | empty | Optional JSON object passed as Ollama `options` |
 | `MOCK_MODEL` | `0` | `1` uses the local mock model client |
 | `MOCK_MODEL_STEPS` | built-in two-step mock | JSON steps for the mock model |
+| `MODEL_MAX_TOKENS` | empty | Optional positive `max_tokens` value for OpenRouter requests |
 | `MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice`; supports `auto`, `none`, `required`, or `function:NAME` |
 | `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell` |
 | `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object for an advertised tool |
@@ -31,6 +32,7 @@ Settings come from process environment and `.env`.
 | `SHELL_TIMEOUT_SECONDS` | `60` | Sandbox shell command timeout |
 | `MAX_TOOL_OUTPUT_CHARS` | `20000` | Tool stdout/stderr truncation limit |
 | `TEXT_ONLY_DELAY_SECONDS` | `2` | Delay after a text-only model response |
+| `MAX_TOOL_CALLS_PER_WAKE` | `80` | Positive cap on executed tool calls in one wake |
 
 ## Storage And Sandbox
 

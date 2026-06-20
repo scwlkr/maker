@@ -43,8 +43,10 @@ class Settings:
     context_limit_tokens: int
     store_raw_outputs: bool
     model_timeout_seconds: int
+    model_max_tokens: int | None
     fetch_timeout_seconds: int
     text_only_delay_seconds: float
+    max_tool_calls_per_wake: int
     maker_place_dir: Path
     sandbox: SandboxSettings
     mock_model: bool
@@ -60,9 +62,15 @@ class ModelClient(Protocol):
 
 
 class OpenRouterClient:
-    def __init__(self, api_key: str, tool_choice: Any | None = "required"):
+    def __init__(
+        self,
+        api_key: str,
+        tool_choice: Any | None = "required",
+        max_tokens: int | None = None,
+    ):
         self.api_key = api_key
         self.tool_choice = tool_choice
+        self.max_tokens = max_tokens
         self.url = "https://openrouter.ai/api/v1/chat/completions"
 
     def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
@@ -73,6 +81,8 @@ class OpenRouterClient:
         }
         if self.tool_choice is not None:
             body["tool_choice"] = self.tool_choice
+        if self.max_tokens is not None:
+            body["max_tokens"] = self.max_tokens
         request = urllib.request.Request(
             self.url,
             data=json.dumps(body).encode("utf-8"),
@@ -203,6 +213,7 @@ class Controller:
             self.model_client = OpenRouterClient(
                 settings.openrouter_api_key,
                 settings.model_tool_choice if settings.model_tool_choice is not None else "required",
+                settings.model_max_tokens,
             )
         self.tool_schemas = tool_schemas_for_mode(settings.tool_schema_mode)
         self.allowed_tool_names = tool_names_from_schemas(self.tool_schemas)
@@ -227,8 +238,10 @@ class Controller:
             "ollama_options": self.settings.ollama_options,
             "models_attempted": [],
             "model_tool_choice": self.settings.model_tool_choice,
+            "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
+            "max_tool_calls_per_wake": self.settings.max_tool_calls_per_wake,
             "end_reason": None,
             "tool_calls": [],
             "text_outputs": [],
@@ -261,6 +274,7 @@ class Controller:
 
             call_index = 0
             consecutive_text_only = 0
+            tool_call_limit_reached = False
             while not self._stop_requested:
                 if self.estimated_tokens(messages, self.tool_schemas) >= self.settings.context_limit_tokens:
                     summary["end_reason"] = "context_exhausted"
@@ -326,6 +340,22 @@ class Controller:
                 consecutive_text_only = 0
                 should_finish = False
                 for tool_call in tool_calls:
+                    if call_index >= self.settings.max_tool_calls_per_wake:
+                        tool_call_limit_reached = True
+                        summary["end_reason"] = "tool_call_limit"
+                        error = (
+                            "wake reached max tool call limit "
+                            f"({self.settings.max_tool_calls_per_wake})"
+                        )
+                        summary["errors"].append(error)
+                        self.maker_place.append_event(
+                            "tool_call_limit_reached",
+                            wake_id,
+                            tool_calls=call_index,
+                            limit=self.settings.max_tool_calls_per_wake,
+                            error=error,
+                        )
+                        break
                     call_index += 1
                     function = tool_call.get("function") or {}
                     name = function.get("name", "")
@@ -352,6 +382,8 @@ class Controller:
                         summary["end_reason"] = "sleep_or_finish"
                         break
                 if should_finish:
+                    break
+                if tool_call_limit_reached:
                     break
 
             if self._stop_requested and summary["end_reason"] is None:
@@ -654,6 +686,24 @@ def parse_json_object_env(name: str) -> dict[str, Any] | None:
     return parsed
 
 
+def parse_optional_positive_int_env(name: str) -> int | None:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return None
+    parsed = int(value)
+    if parsed < 1:
+        raise ValueError(f"{name} must be a positive integer")
+    return parsed
+
+
+def parse_positive_int_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    parsed = int(value) if value is not None and value.strip() else default
+    if parsed < 1:
+        raise ValueError(f"{name} must be a positive integer")
+    return parsed
+
+
 def tool_choice_requests_tool(tool_choice: Any | None) -> bool:
     if tool_choice is None:
         return False
@@ -707,8 +757,10 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         context_limit_tokens=int(os.getenv("CONTEXT_LIMIT_TOKENS", "120000")),
         store_raw_outputs=os.getenv("STORE_RAW_OUTPUTS", "0") == "1",
         model_timeout_seconds=int(os.getenv("MODEL_TIMEOUT_SECONDS", "60")),
+        model_max_tokens=parse_optional_positive_int_env("MODEL_MAX_TOKENS"),
         fetch_timeout_seconds=int(os.getenv("FETCH_TIMEOUT_SECONDS", "30")),
         text_only_delay_seconds=float(os.getenv("TEXT_ONLY_DELAY_SECONDS", "2")),
+        max_tool_calls_per_wake=parse_positive_int_env("MAX_TOOL_CALLS_PER_WAKE", 80),
         maker_place_dir=Path(os.getenv("MAKER_PLACE_DIR", "maker-place")),
         sandbox=settings_from_env(repo_root),
         mock_model=os.getenv("MOCK_MODEL", "0") == "1",

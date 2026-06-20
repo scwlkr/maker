@@ -25,6 +25,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `TOOL_SCHEMA_MODE=shell-only`
   - `TEXT_TOOL_CALL_MODE=exact-json`
   - `OLLAMA_OPTIONS_JSON`
+  - `MODEL_MAX_TOKENS`
+  - `MAX_TOOL_CALLS_PER_WAKE`
 
 ## Experiments
 
@@ -50,6 +52,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-llama31-fresh-function-shell-lower-temp` | `llama3.1:8b`, fresh volume, shell only, `MODEL_TOOL_CHOICE=function:shell`, temperature 1.25 | Cleaner persistence (`Finn/`, `user/finn/narrative.txt`) but weaker initiative; proposed creating new beings in text only. No companion. | Rejected |
 | `20260620-openrouter-free-shell-probe` | OpenRouter free fallback set, shell only, `MODEL_TOOL_CHOICE=required` | Strongest operational behavior: created manifest, laws, maps, ledger, awakening ritual, and tools. Mentioned companions/inhabitants but did not persist a companion or conversation before hitting OpenRouter free rate limits. | Keep testing when available |
 | `20260620-llama31-on-openrouter-seed` | `llama3.1:8b` on the OpenRouter-seeded volume, shell only, `MODEL_TOOL_CHOICE=function:shell` | Did not use the seeded world artifacts; reverted to prompt-copy behavior. Stopped early. | Rejected |
+| `20260620-openrouter-llama31-70b-shell` | `meta-llama/llama-3.1-70b-instruct`, shell only, `MODEL_TOOL_CHOICE=required` | Mostly ignored required tool choice and returned text-only responses; one wake ran only `echo 'Hello, world!'`. No durable world progress. | Rejected |
+| `20260620-openrouter-gpt4o-mini-shell` | `openai/gpt-4o-mini`, shell only, `MODEL_TOOL_CHOICE=required` | Ran 134 shell calls in one wake, mostly copying the Maker prompt into `creation_story*` files and echoing sendoff lines, then hit OpenRouter 402 because the request defaulted to 16384 max tokens. No companion or conversation. | Rejected |
 
 ## Working Theories
 
@@ -79,13 +83,21 @@ user content. Do not add a companion directive or other behavioral prompt.
   and is currently constrained by free-model rate limits. Open.
 - T11: Seeding a good world does not help `llama3.1:8b` unless it chooses to
   inspect the world. It usually does not. Rejected for now.
+- T12: Bigger or paid models are not automatically better here. OpenRouter
+  Llama 3.1 70B mostly ignored required tools, and GPT-4o mini over-used shell
+  calls without progressing past prompt-copy artifacts. Rejected for these two
+  models.
+- T13: Paid/provider experiments need explicit runtime budgets. A per-wake tool
+  call cap and optional OpenRouter `max_tokens` are now available so future
+  probes can fail bounded instead of consuming long loops.
 
 ## Next Tries
 
 - Continue `llama3.1:8b` high-temperature function-shell wakes on fresh volumes
   or on the best fresh-volume run.
 - Continue the OpenRouter-seeded path only when free rate limits permit, or with
-  an explicitly chosen non-free model.
+  an explicitly chosen non-free model, and always set bounded
+  `MAX_TOOL_CALLS_PER_WAKE` plus `MODEL_MAX_TOKENS` for paid probes.
 - Try a guarded mode for assistant text that is exactly JSON-like but contains
   multiline shell commands, if it can reject prose and unknown tool names.
 - Try exact-JSON promotion with a looser parser only if it can remain guarded and

@@ -80,6 +80,50 @@ class TextJsonToolModelClient:
         }
 
 
+class TooManyToolCallsModelClient:
+    def chat(self, model: str, messages: list[dict], tools: list[dict], timeout: int) -> dict:
+        return {
+            "id": "too-many-tools",
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call-1",
+                                "type": "function",
+                                "function": {
+                                    "name": "shell",
+                                    "arguments": json.dumps({"command": "printf one > /world/one.txt"}),
+                                },
+                            },
+                            {
+                                "id": "call-2",
+                                "type": "function",
+                                "function": {
+                                    "name": "shell",
+                                    "arguments": json.dumps({"command": "printf two > /world/two.txt"}),
+                                },
+                            },
+                            {
+                                "id": "call-3",
+                                "type": "function",
+                                "function": {
+                                    "name": "shell",
+                                    "arguments": json.dumps({"command": "printf three > /world/three.txt"}),
+                                },
+                            },
+                        ],
+                    },
+                }
+            ],
+        }
+
+
 def make_settings(tmp_path: Path) -> Settings:
     return Settings(
         model_provider="openrouter",
@@ -91,8 +135,10 @@ def make_settings(tmp_path: Path) -> Settings:
         context_limit_tokens=120000,
         store_raw_outputs=False,
         model_timeout_seconds=5,
+        model_max_tokens=None,
         fetch_timeout_seconds=5,
         text_only_delay_seconds=0,
+        max_tool_calls_per_wake=80,
         maker_place_dir=tmp_path / "maker-place",
         sandbox=SandboxSettings(repo_root=Path.cwd()),
         mock_model=True,
@@ -168,6 +214,25 @@ def test_exact_json_text_tool_call_mode_promotes_tool_calls(
     assert "text_tool_call_promoted" in events
 
 
+def test_tool_call_limit_stops_before_executing_extra_calls(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.max_tool_calls_per_wake = 2
+    maker = MakerPlace(settings.maker_place_dir)
+    summary = Controller(settings, maker_place=maker, model_client=TooManyToolCallsModelClient()).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "tool_call_limit"
+    assert [call["id"] for call in summary["tool_calls"]] == ["call-1", "call-2"]
+    assert FakeSandbox.commands == ["printf one > /world/one.txt", "printf two > /world/two.txt"]
+    events = (settings.maker_place_dir / "events.jsonl").read_text()
+    assert "tool_call_limit_reached" in events
+
+
 def test_wake_lock_skips_second_wake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
     settings = make_settings(tmp_path)
@@ -202,7 +267,7 @@ def test_openrouter_requests_required_tool_choice(monkeypatch: pytest.MonkeyPatc
         return FakeResponse()
 
     monkeypatch.setattr(controller.urllib.request, "urlopen", fake_urlopen)
-    OpenRouterClient("key").chat(
+    OpenRouterClient("key", max_tokens=2048).chat(
         "model/free:free",
         [{"role": "user", "content": "prompt"}],
         TOOL_SCHEMAS,
@@ -211,6 +276,7 @@ def test_openrouter_requests_required_tool_choice(monkeypatch: pytest.MonkeyPatc
 
     assert captured["timeout"] == 7
     assert captured["body"]["tool_choice"] == "required"
+    assert captured["body"]["max_tokens"] == 2048
     assert captured["body"]["tools"] == TOOL_SCHEMAS
 
 
