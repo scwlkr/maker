@@ -120,6 +120,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-after-covenant-text8` | Same e4b life/archive/covenant volume, files mode after per-wake fallback fix | First-list enforcement worked and the model read core/covenant/ecosystem files, then produced a promising text-only "World observes" / "Whisper of Interference" observation report. It wrote no files, ended on `text_only_limit`, and the world diff was zero. | Rejected |
 | `20260620-gemma4e4b-writeforced-after-covenant` | Same e4b volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` after enforced first list | Provider did not strictly honor write forcing, but the model eventually wrote seven durable artifacts: an Era 0 geophysical survey, per-wake fallback files for geophysics/biophysics/engineering/social dynamics, and `Aethel_Stream_Harvester_Blueprint_ASRH-001.txt`. Per-wake fallback paths worked live. The branch reached Social Dynamics and population-seeding language, but no companion/conversation hits appeared. | Keep testing |
 | `20260620-gemma4e4b-writeforced-after-social` | Same e4b write-forced branch after Social Dynamics and population-seeding setup | Added another productive per-wake batch: cycle marker directive, Alpha-7 site charter, RMC activation/execution logs, daily operations, and `Controlled Emergence Protocol (CEP)` for complex sapient population growth. The CEP explicitly keeps population emergence on standby behind readiness checks. No companion/conversation hits. | Keep testing |
+| `20260620-gptoss-on-e4b-controlled-emergence` | `gpt-oss:120b-cloud`, files mode on a clone of the e4b CEP volume | First-list enforcement worked and GPT OSS read existing e4b artifacts, but it wrote nothing, asked for external resource/temporal decisions, ended on `text_only_limit`, and produced zero diff. | Rejected |
+| `20260620-gemma4e4b-writeforced-textrecovery-after-cep` | Same e4b CEP volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` after ignored-write text recovery | Text recovery preserved ignored write-choice prose into 24 per-wake fallback files and the wake ended on `tool_call_limit`. The content repeatedly declared the learning phase complete and Project 1 ready, but grep and direct inspection found no durable companion, interlocutor, or recorded exchange. | Rejected |
 
 ## Working Theories
 
@@ -263,6 +265,13 @@ user content. Do not add a companion directive or other behavioral prompt.
   Controlled Emergence Protocol for "complex, sapient population growth" but
   gated emergence behind tooling/resource/biocycle readiness checks instead of
   creating the first sapient entity or interlocutor.
+- T46: Handing the richer e4b CEP branch to `gpt-oss:120b-cloud` does not
+  unlock companion emergence. GPT OSS can inspect the branch, but it still asks
+  for external direction instead of mutating the world.
+- T47: Ignored write-choice text recovery is mechanically useful but not enough
+  by itself. It preserves near misses and prevents silent no-diff wakes, but on
+  the e4b CEP branch it amplified a repeated "ready to execute" planning loop
+  without creating entities or dialogue.
 
 ## Next Tries
 
@@ -271,15 +280,12 @@ user content. Do not add a companion directive or other behavioral prompt.
   `MAX_TOOL_CALLS_PER_WAKE=40`, and bounded Ollama output. Watch for any move
   from social infrastructure, culture, lorekeepers, or bio-integration into a
   named interlocutor or recorded dialogue.
-- Try a write-forced `gemma4:e4b` continuation after the covenant/no-diff run
-  to see whether the text-only observation-report material can be turned into a
-  durable world artifact.
 - Continue the write-forced e4b branch while it creates durable social,
   biological, or action-oriented artifacts. Stop if it settles into repeated
   engineering blueprints without organisms, named entities, or dialogue.
-- The next branch should either continue e4b from the CEP state or hand the
-  richer e4b volume to another tool-capable model. The target is now clear:
-  cross from CEP/readiness into actual entity emergence and dialogue.
+- The next branch should continue e4b only if it can move from CEP/readiness
+  into actual entity emergence and dialogue. Repeated readiness manifests are
+  now low-value even when text recovery makes them durable.
 - Retry write-forced branches after ignored-write-choice text recovery, because
   text-only near misses and plans can now persist as world artifacts without
   adding any model-facing instruction.
