@@ -13,8 +13,12 @@ Settings come from process environment and `.env`.
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama base URL |
 | `OLLAMA_MODEL` | `llama3.1:8b` | Ollama primary model |
 | `OLLAMA_FALLBACKS` | `qwen3.5:9b` | Comma-separated Ollama fallback models |
+| `OLLAMA_OPTIONS_JSON` | empty | Optional JSON object passed as Ollama `options` |
 | `MOCK_MODEL` | `0` | `1` uses the local mock model client |
 | `MOCK_MODEL_STEPS` | built-in two-step mock | JSON steps for the mock model |
+| `MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice`; supports `auto`, `none`, `required`, or `function:NAME` |
+| `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell` |
+| `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object |
 
 ## Wake And Tool Limits
 

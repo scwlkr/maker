@@ -52,6 +52,34 @@ class TextOnlyModelClient:
         }
 
 
+class TextJsonToolModelClient:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def chat(self, model: str, messages: list[dict], tools: list[dict], timeout: int) -> dict:
+        self.calls += 1
+        if self.calls == 1:
+            content = json.dumps(
+                {
+                    "name": "shell",
+                    "arguments": {"command": "printf 'Finn was here\\n' > /world/mock-wake.txt"},
+                }
+            )
+        else:
+            content = json.dumps({"name": "sleep_or_finish", "arguments": {}})
+        return {
+            "id": f"text-json-{self.calls}",
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {"role": "assistant", "content": content},
+                }
+            ],
+        }
+
+
 def make_settings(tmp_path: Path) -> Settings:
     return Settings(
         model_provider="openrouter",
@@ -121,6 +149,25 @@ def test_text_only_response_logs_required_tool_choice_ignored(
     assert "text_only_limit_reached" in events
 
 
+def test_exact_json_text_tool_call_mode_promotes_tool_calls(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.text_tool_call_mode = "exact-json"
+    maker = MakerPlace(settings.maker_place_dir)
+    summary = Controller(settings, maker_place=maker, model_client=TextJsonToolModelClient()).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert [call["name"] for call in summary["tool_calls"]] == ["shell", "sleep_or_finish"]
+    assert any("mock-wake.txt" in command for command in FakeSandbox.commands)
+    events = (settings.maker_place_dir / "events.jsonl").read_text()
+    assert "text_tool_call_promoted" in events
+
+
 def test_wake_lock_skips_second_wake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
     settings = make_settings(tmp_path)
@@ -165,6 +212,29 @@ def test_openrouter_requests_required_tool_choice(monkeypatch: pytest.MonkeyPatc
     assert captured["timeout"] == 7
     assert captured["body"]["tool_choice"] == "required"
     assert captured["body"]["tools"] == TOOL_SCHEMAS
+
+
+def test_openrouter_tool_choice_can_be_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def read(self) -> bytes:
+            return b'{"choices":[{"message":{"role":"assistant","content":"ok"}}]}'
+
+    def fake_urlopen(request, timeout):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", fake_urlopen)
+    OpenRouterClient("key", tool_choice=None).chat("model/free:free", [], TOOL_SCHEMAS, timeout=7)
+
+    assert "tool_choice" not in captured["body"]
 
 
 def test_ollama_client_parses_tool_call_response(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -218,6 +288,40 @@ def test_ollama_client_parses_tool_call_response(monkeypatch: pytest.MonkeyPatch
     assert captured["body"]["tools"] == TOOL_SCHEMAS
     assert tool_call["function"]["name"] == "shell"
     assert json.loads(tool_call["function"]["arguments"]) == {"command": "printf hi > /world/hi.txt"}
+
+
+def test_ollama_client_sends_configured_tool_choice(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "model": "llama3.1:8b",
+                    "message": {"role": "assistant", "content": "hello"},
+                    "done": True,
+                }
+            ).encode()
+
+    def fake_urlopen(request, timeout):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", fake_urlopen)
+    controller.OllamaClient(
+        "http://ollama.local",
+        tool_choice={"type": "function", "function": {"name": "shell"}},
+        options={"temperature": 1.2},
+    ).chat("llama3.1:8b", [], TOOL_SCHEMAS, timeout=7)
+
+    assert captured["body"]["tool_choice"] == {"type": "function", "function": {"name": "shell"}}
+    assert captured["body"]["options"] == {"temperature": 1.2}
 
 
 def test_ollama_client_handles_text_only_response(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -312,3 +416,32 @@ def test_provider_selection_uses_ollama_without_openrouter_key(monkeypatch: pyte
     assert settings.model == "llama3.1:8b"
     assert settings.model_fallbacks == ["qwen3.5:9b"]
     assert isinstance(runtime.model_client, controller.OllamaClient)
+
+
+def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "shell-only"
+    runtime = Controller(settings, model_client=MockModelClient())
+
+    assert [schema["function"]["name"] for schema in runtime.tool_schemas] == ["shell"]
+
+
+def test_parse_model_tool_choice_function() -> None:
+    assert controller.parse_model_tool_choice("function:shell") == {
+        "type": "function",
+        "function": {"name": "shell"},
+    }
+
+
+def test_promote_text_tool_call_accepts_parameters_key() -> None:
+    promoted = controller.promote_text_tool_call(
+        {
+            "role": "assistant",
+            "content": '{"name":"shell","parameters":{"command":"true"}}',
+        },
+        "exact-json",
+    )
+
+    assert promoted is not None
+    tool_call = promoted["assistant_message"]["tool_calls"][0]
+    assert json.loads(tool_call["function"]["arguments"]) == {"command": "true"}

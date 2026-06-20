@@ -48,6 +48,10 @@ class Settings:
     maker_place_dir: Path
     sandbox: SandboxSettings
     mock_model: bool
+    ollama_options: dict[str, Any] | None = None
+    model_tool_choice: Any | None = None
+    tool_schema_mode: str = "all"
+    text_tool_call_mode: str = "disabled"
 
 
 class ModelClient(Protocol):
@@ -56,8 +60,9 @@ class ModelClient(Protocol):
 
 
 class OpenRouterClient:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, tool_choice: Any | None = "required"):
         self.api_key = api_key
+        self.tool_choice = tool_choice
         self.url = "https://openrouter.ai/api/v1/chat/completions"
 
     def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
@@ -65,8 +70,9 @@ class OpenRouterClient:
             "model": model,
             "messages": messages,
             "tools": tools,
-            "tool_choice": "required",
         }
+        if self.tool_choice is not None:
+            body["tool_choice"] = self.tool_choice
         request = urllib.request.Request(
             self.url,
             data=json.dumps(body).encode("utf-8"),
@@ -87,8 +93,15 @@ class OpenRouterClient:
 
 
 class OllamaClient:
-    def __init__(self, base_url: str):
+    def __init__(
+        self,
+        base_url: str,
+        tool_choice: Any | None = None,
+        options: dict[str, Any] | None = None,
+    ):
         self.base_url = base_url.rstrip("/")
+        self.tool_choice = tool_choice
+        self.options = options
         self.url = f"{self.base_url}/api/chat"
 
     def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
@@ -98,6 +111,10 @@ class OllamaClient:
             "tools": tools,
             "stream": False,
         }
+        if self.tool_choice is not None:
+            body["tool_choice"] = self.tool_choice
+        if self.options is not None:
+            body["options"] = self.options
         request = urllib.request.Request(
             self.url,
             data=json.dumps(body).encode("utf-8"),
@@ -175,11 +192,19 @@ class Controller:
         elif settings.mock_model:
             self.model_client = MockModelClient()
         elif settings.model_provider == "ollama":
-            self.model_client = OllamaClient(settings.ollama_base_url)
+            self.model_client = OllamaClient(
+                settings.ollama_base_url,
+                settings.model_tool_choice,
+                settings.ollama_options,
+            )
         else:
             if not settings.openrouter_api_key:
                 raise RuntimeError("OPENROUTER_API_KEY is required unless MOCK_MODEL=1")
-            self.model_client = OpenRouterClient(settings.openrouter_api_key)
+            self.model_client = OpenRouterClient(
+                settings.openrouter_api_key,
+                settings.model_tool_choice if settings.model_tool_choice is not None else "required",
+            )
+        self.tool_schemas = tool_schemas_for_mode(settings.tool_schema_mode)
         self._stop_requested = False
 
     def request_stop(self, signum: int | None = None, frame: object | None = None) -> None:
@@ -198,7 +223,11 @@ class Controller:
             "end_time": None,
             "model_provider": self.settings.model_provider,
             "model": self.settings.model,
+            "ollama_options": self.settings.ollama_options,
             "models_attempted": [],
+            "model_tool_choice": self.settings.model_tool_choice,
+            "tool_schema_mode": self.settings.tool_schema_mode,
+            "text_tool_call_mode": self.settings.text_tool_call_mode,
             "end_reason": None,
             "tool_calls": [],
             "text_outputs": [],
@@ -232,12 +261,12 @@ class Controller:
             call_index = 0
             consecutive_text_only = 0
             while not self._stop_requested:
-                if self.estimated_tokens(messages) >= self.settings.context_limit_tokens:
+                if self.estimated_tokens(messages, self.tool_schemas) >= self.settings.context_limit_tokens:
                     summary["end_reason"] = "context_exhausted"
                     self.maker_place.append_event(
                         "context_exhausted",
                         wake_id,
-                        estimated_tokens=self.estimated_tokens(messages),
+                        estimated_tokens=self.estimated_tokens(messages, self.tool_schemas),
                         context_limit_tokens=self.settings.context_limit_tokens,
                     )
                     break
@@ -248,6 +277,18 @@ class Controller:
                 choice = response.get("choices", [{}])[0]
                 message = choice.get("message") or {}
                 assistant_message = normalize_assistant_message(message)
+                promoted_tool_call = promote_text_tool_call(
+                    assistant_message,
+                    self.settings.text_tool_call_mode,
+                )
+                if promoted_tool_call is not None:
+                    assistant_message = promoted_tool_call["assistant_message"]
+                    self.maker_place.append_event(
+                        "text_tool_call_promoted",
+                        wake_id,
+                        tool=promoted_tool_call["tool_name"],
+                        content=promoted_tool_call["content"],
+                    )
                 messages.append(assistant_message)
 
                 content = assistant_message.get("content")
@@ -359,12 +400,12 @@ class Controller:
         errors: list[str] = []
         for model in [self.settings.model, *self.settings.model_fallbacks]:
             try:
-                response = self.model_client.chat(model, messages, TOOL_SCHEMAS, self.settings.model_timeout_seconds)
+                response = self.model_client.chat(model, messages, self.tool_schemas, self.settings.model_timeout_seconds)
                 info = model_response_info(
                     response,
                     model,
                     provider=self.settings.model_provider,
-                    required_tool_choice_requested=self.settings.model_provider == "openrouter",
+                    required_tool_choice_requested=tool_choice_requests_tool(self.active_tool_choice()),
                 )
                 self.maker_place.append_event("model_response", wake_id, **info)
                 if not info["has_tool_calls"] and info["required_tool_choice_requested"]:
@@ -383,8 +424,15 @@ class Controller:
         raise RuntimeError("all models failed: " + " | ".join(errors))
 
     @staticmethod
-    def estimated_tokens(messages: list[dict[str, Any]]) -> int:
-        return max(1, len(json.dumps({"messages": messages, "tools": TOOL_SCHEMAS}, ensure_ascii=False)) // 4)
+    def estimated_tokens(messages: list[dict[str, Any]], tools: list[dict[str, Any]] = TOOL_SCHEMAS) -> int:
+        return max(1, len(json.dumps({"messages": messages, "tools": tools}, ensure_ascii=False)) // 4)
+
+    def active_tool_choice(self) -> Any | None:
+        if self.settings.model_tool_choice is not None:
+            return self.settings.model_tool_choice
+        if self.settings.model_provider == "openrouter":
+            return "required"
+        return None
 
 
 def normalize_assistant_message(message: dict[str, Any]) -> dict[str, Any]:
@@ -423,6 +471,44 @@ def normalize_tool_calls(tool_calls: list[Any]) -> list[dict[str, Any]]:
             }
         )
     return normalized
+
+
+def promote_text_tool_call(message: dict[str, Any], mode: str) -> dict[str, Any] | None:
+    if mode.strip().lower().replace("_", "-") not in {"exact-json", "exact-json-object"}:
+        return None
+    if message.get("tool_calls"):
+        return None
+    content = message.get("content")
+    if not isinstance(content, str):
+        return None
+    stripped = content.strip()
+    if not stripped:
+        return None
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    function = parsed.get("function") if isinstance(parsed.get("function"), dict) else parsed
+    name = function.get("name") if isinstance(function, dict) else None
+    if not isinstance(name, str) or not name:
+        return None
+    arguments = function.get("arguments", function.get("parameters", {})) if isinstance(function, dict) else {}
+    tool_call = normalize_tool_calls(
+        [
+            {
+                "id": "text-tool-call-1",
+                "type": "function",
+                "function": {"name": name, "arguments": arguments},
+            }
+        ]
+    )[0]
+    return {
+        "assistant_message": {"role": "assistant", "content": None, "tool_calls": [tool_call]},
+        "tool_name": name,
+        "content": summarize_text(stripped, 1000),
+    }
 
 
 def normalize_ollama_chat_response(response: dict[str, Any], requested_model: str) -> dict[str, Any]:
@@ -521,6 +607,50 @@ def model_response_info(
     }
 
 
+def parse_model_tool_choice(value: str | None) -> Any | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized or normalized.lower() == "default":
+        return None
+    lowered = normalized.lower()
+    if lowered in {"auto", "none", "required"}:
+        return lowered
+    if lowered.startswith("function:"):
+        function_name = normalized.split(":", 1)[1].strip()
+        if not function_name:
+            raise ValueError("MODEL_TOOL_CHOICE function name cannot be empty")
+        return {"type": "function", "function": {"name": function_name}}
+    return normalized
+
+
+def parse_json_object_env(name: str) -> dict[str, Any] | None:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return None
+    parsed = json.loads(value)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{name} must be a JSON object")
+    return parsed
+
+
+def tool_choice_requests_tool(tool_choice: Any | None) -> bool:
+    if tool_choice is None:
+        return False
+    if isinstance(tool_choice, str):
+        return tool_choice.lower() == "required"
+    return isinstance(tool_choice, dict)
+
+
+def tool_schemas_for_mode(mode: str) -> list[dict[str, Any]]:
+    normalized = mode.strip().lower().replace("_", "-")
+    if normalized == "all":
+        return TOOL_SCHEMAS
+    if normalized in {"shell", "shell-only"}:
+        return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "shell"]
+    raise ValueError(f"unknown TOOL_SCHEMA_MODE: {mode}")
+
+
 def load_dotenv(path: str | Path = ".env") -> None:
     env_path = Path(path)
     if not env_path.exists():
@@ -550,6 +680,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         model_provider=model_provider,
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        ollama_options=parse_json_object_env("OLLAMA_OPTIONS_JSON"),
         model=model,
         model_fallbacks=fallbacks,
         wake_interval_seconds=int(os.getenv("WAKE_INTERVAL_SECONDS", "300")),
@@ -561,6 +692,9 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         maker_place_dir=Path(os.getenv("MAKER_PLACE_DIR", "maker-place")),
         sandbox=settings_from_env(repo_root),
         mock_model=os.getenv("MOCK_MODEL", "0") == "1",
+        model_tool_choice=parse_model_tool_choice(os.getenv("MODEL_TOOL_CHOICE")),
+        tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
+        text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
     )
 
 
