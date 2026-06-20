@@ -24,9 +24,16 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `MODEL_TOOL_CHOICE`
   - `TOOL_SCHEMA_MODE=shell-only`
   - `TEXT_TOOL_CALL_MODE=exact-json`
+  - `TEXT_TOOL_CALL_MODE=exact-literal`
+  - `TEXT_TOOL_CALL_MODE=fenced-json`
+  - `TOOL_SCHEMA_MODE=write-only`
   - `OLLAMA_OPTIONS_JSON`
   - `MODEL_MAX_TOKENS`
   - `MAX_TOOL_CALLS_PER_WAKE`
+  - `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES`
+  - `write_file` tool for UTF-8 files under `/world`
+- OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
+  probes are currently blocked unless credits are added.
 
 ## Experiments
 
@@ -54,6 +61,17 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-llama31-on-openrouter-seed` | `llama3.1:8b` on the OpenRouter-seeded volume, shell only, `MODEL_TOOL_CHOICE=function:shell` | Did not use the seeded world artifacts; reverted to prompt-copy behavior. Stopped early. | Rejected |
 | `20260620-openrouter-llama31-70b-shell` | `meta-llama/llama-3.1-70b-instruct`, shell only, `MODEL_TOOL_CHOICE=required` | Mostly ignored required tool choice and returned text-only responses; one wake ran only `echo 'Hello, world!'`. No durable world progress. | Rejected |
 | `20260620-openrouter-gpt4o-mini-shell` | `openai/gpt-4o-mini`, shell only, `MODEL_TOOL_CHOICE=required` | Ran 134 shell calls in one wake, mostly copying the Maker prompt into `creation_story*` files and echoing sendoff lines, then hit OpenRouter 402 because the request defaulted to 16384 max tokens. No companion or conversation. | Rejected |
+| `20260620-openrouter-free-bounded-followup` | Existing OpenRouter free-seeded volume, shell only, bounded max tokens/tool calls | Primary free models hit daily 429; `openrouter/free` returned narrative-only seed/life text and made no world diff. | Blocked by free limits |
+| `20260620-llama31-write-only-normalized` | `llama3.1:8b`, `write_file` only, path normalization | Persisted prompt-copy files such as `making_of_world.txt` and `data/intro.txt`; no companion or conversation. | Rejected |
+| `20260620-llama31-write-literal2` | `llama3.1:8b`, `write_file` only, `TEXT_TOOL_CALL_MODE=exact-literal` | Literal promotion worked and persisted several files, but artifacts remained prompt copies or generic world notes. No companion. | Rejected |
+| `20260620-hermes3-write-literal` | `hermes3:8b`, `write_file` only, exact literal promotion | Strong social language and asked how to populate/cultivate, but ignored tools and made no files. | Rejected |
+| `20260620-mistral-write-literal` | `mistral-nemo:12b`, `write_file` only | Wrote `first_chapter.txt` with the prompt, then asked for more input. No companion. | Rejected |
+| `20260620-qwen25-fenced-write` | `qwen2.5-coder:7b`, `write_file` only, fenced JSON promotion | Fenced promotion worked for files like `finn.txt` and `inscription.txt`; still only prompt-copy or motivational text. No companion. | Rejected |
+| `20260620-llama31-all-write` | `llama3.1:8b`, all tools including `write_file`, exact literal promotion | Did not improve behavior; mostly prose-wrapped file calls and one invalid path. No durable world progress. | Rejected |
+| `20260620-gemma26-write-literal` | `gemma4:26b`, `write_file` only, exact literal promotion | Best local world-building: wrote `foundation/edict_i.txt`, `domain/seed_log.md`, `domain/core.md`, and `elements/substrate.md`. No companion or conversation before interruption/unknown end. | Keep testing |
+| `20260620-gemma26-write-literal-long` | `gemma4:26b`, `write_file` only, same family settings | Text-only world-building, no tool calls or files. | Rejected |
+| `20260620-gemma26-all-on-seed` | `gemma4:26b`, all tools on the best Gemma seeded volume | Did not inspect or extend existing files; text-only and asked the Maker to choose next elements. | Rejected |
+| `20260620-gemma26-write-text8` | `gemma4:26b`, `write_file` only, text-only limit raised to 8 | Developed richer prose about Aethel-Spores, currents, and rhythm, but made no tool calls or files. | Rejected |
 
 ## Working Theories
 
@@ -90,17 +108,25 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T13: Paid/provider experiments need explicit runtime budgets. A per-wake tool
   call cap and optional OpenRouter `max_tokens` are now available so future
   probes can fail bounded instead of consuming long loops.
+- T14: A generic `write_file` tool removes shell quoting/path friction, but most
+  local models use the easier tool to transcribe or summarize the Maker prompt
+  rather than create a companion. Verified for Llama, Mistral, and Qwen.
+- T15: `gemma4:26b` is the best local semantic candidate. It can create a
+  coherent domain substrate and reason toward life, but tool use is stochastic
+  and it still has not created a persistent companion or conversation.
+- T16: Current blockers are model behavior and provider availability, not prompt
+  content: paid OpenRouter has no credits, OpenRouter free is rate-limited, and
+  local models either ignore tools, transcribe the prompt, or ask the Maker for
+  choices.
 
 ## Next Tries
 
-- Continue `llama3.1:8b` high-temperature function-shell wakes on fresh volumes
-  or on the best fresh-volume run.
-- Continue the OpenRouter-seeded path only when free rate limits permit, or with
-  an explicitly chosen non-free model, and always set bounded
-  `MAX_TOOL_CALLS_PER_WAKE` plus `MODEL_MAX_TOKENS` for paid probes.
-- Try a guarded mode for assistant text that is exactly JSON-like but contains
-  multiline shell commands, if it can reject prose and unknown tool names.
-- Try exact-JSON promotion with a looser parser only if it can remain guarded and
-  does not execute prose blocks.
+- Continue `gemma4:26b` write-only probes only if runtime cost is acceptable;
+  it is the only local model that moved beyond prompt transcription.
+- Add a generic read/list file tool if continuing local-only work, so a model
+  can inspect and extend seeded `/world` artifacts without shell syntax.
+- Continue the OpenRouter-seeded path only when free rate limits permit or after
+  credits are available, and always set bounded `MAX_TOOL_CALLS_PER_WAKE` plus
+  `MODEL_MAX_TOKENS` for paid probes.
 - If local models remain stuck, pull one more tool-capable local model before
-  considering non-local providers.
+  more runtime changes.
