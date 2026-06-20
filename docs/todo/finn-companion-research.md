@@ -122,6 +122,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-writeforced-after-social` | Same e4b write-forced branch after Social Dynamics and population-seeding setup | Added another productive per-wake batch: cycle marker directive, Alpha-7 site charter, RMC activation/execution logs, daily operations, and `Controlled Emergence Protocol (CEP)` for complex sapient population growth. The CEP explicitly keeps population emergence on standby behind readiness checks. No companion/conversation hits. | Keep testing |
 | `20260620-gptoss-on-e4b-controlled-emergence` | `gpt-oss:120b-cloud`, files mode on a clone of the e4b CEP volume | First-list enforcement worked and GPT OSS read existing e4b artifacts, but it wrote nothing, asked for external resource/temporal decisions, ended on `text_only_limit`, and produced zero diff. | Rejected |
 | `20260620-gemma4e4b-writeforced-textrecovery-after-cep` | Same e4b CEP volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` after ignored-write text recovery | Text recovery preserved ignored write-choice prose into 24 per-wake fallback files and the wake ended on `tool_call_limit`. The content repeatedly declared the learning phase complete and Project 1 ready, but grep and direct inspection found no durable companion, interlocutor, or recorded exchange. | Rejected |
+| `20260620-gemma4e4b-required-after-textrecovery-cep` | Same e4b CEP volume, files mode, `MODEL_TOOL_CHOICE=required` | Cleaner than write forcing: read core/biology/ecosystem/geology files, wrote five per-wake fallback artifacts, and logged PTZ/nutrient-hotspot physical instantiation. Still environment/proto-engineering only; no companion/dialogue hits. | Keep testing only with automation |
 
 ## Working Theories
 
@@ -272,6 +273,11 @@ user content. Do not add a companion directive or other behavioral prompt.
   by itself. It preserves near misses and prevents silent no-diff wakes, but on
   the e4b CEP branch it amplified a repeated "ready to execute" planning loop
   without creating entities or dialogue.
+- T48: `MODEL_TOOL_CHOICE=required` is a better e4b continuation mode after
+  CEP than `function:write_file` when the branch starts looping. It still
+  preserves malformed writes through fallback paths, but it allows more reads
+  and avoids converting every closing monologue into another durable manifest.
+  It has not changed the semantic target away from environment engineering.
 
 ## Next Tries
 
@@ -286,6 +292,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - The next branch should continue e4b only if it can move from CEP/readiness
   into actual entity emergence and dialogue. Repeated readiness manifests are
   now low-value even when text recovery makes them durable.
+- Prefer an automated bounded-run loop with post-wake scanning over more
+  manual single wakes on the same e4b branch. Stop a run family when new
+  artifacts are only doctrine, PTZ/nutrient engineering, or readiness logs.
 - Retry write-forced branches after ignored-write-choice text recovery, because
   text-only near misses and plans can now persist as world artifacts without
   adding any model-facing instruction.
