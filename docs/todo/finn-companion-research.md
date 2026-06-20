@@ -17,7 +17,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Installed local Ollama models verified on 2026-06-20:
   `llama3.1:8b`, `llama3.2:3b`, `qwen2.5-coder:7b`, `qwen3.5:9b`,
   `mistral-nemo:12b`, `hermes3:8b`, `llama3-groq-tool-use:8b`,
-  `gemma4:e4b`, and `gemma4:26b`.
+  `phi4:14b`, `gemma4:e4b`, and `gemma4:26b`.
 - `gpt-oss:120b-cloud` is listed by Ollama but was not treated as local because
   its size is reported as `-`.
 - Controller support added for:
@@ -78,6 +78,13 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-files-on-seed` | `gemma4:26b`, `TOOL_SCHEMA_MODE=files`, seeded volume | File tools worked: read prior foundation files, appended the seed log, and created atoms, lattice, flux, and protocol. No companion or conversation. | Keep testing |
 | `20260620-gemma26-files-on-seed-reruns` | Same seeded volume, files mode, including low-temperature rerun | Several wakes reverted to text-only blank-canvas behavior or asked for Maker direction. No world progress. | Rejected |
 | `20260620-gemma26-first-list-files` | `gemma4:26b`, files mode, `FIRST_MODEL_TOOL_CHOICE=function:list_files`, deeper listings | Best local continuity so far. Wakes inspected existing files and created manifestations, particles, connection log, events, motion/collision/compression laws, atom definition, and updated core/seed log. Still no persistent companion or conversation. | Keep testing |
+| `20260620-qwen35-files-on-gemma-seed` | `qwen3.5:9b`, files mode, evolved Gemma volume, `FIRST_MODEL_TOOL_CHOICE=function:list_files` | Ignored required tool choice and returned collaborator-style text only. Zero tool calls and no world diff. | Rejected |
+| `20260620-phi4-files-on-gemma-seed` | `phi4:14b`, files mode, evolved Gemma volume | Ollama rejected the request with `registry.ollama.ai/library/phi4:14b does not support tools`. No world diff. | Rejected |
+| `20260620-groq-files-on-gemma-seed` | `llama3-groq-tool-use:8b`, files mode, cloned evolved Gemma volume | Ignored required file tools, asked for more detail, and made no world diff. | Rejected |
+| `20260620-mistral-files-on-gemma-seed` | `mistral-nemo:12b`, files mode, cloned evolved Gemma volume | Performed the forced `list_files` call, then switched to advice text and made no writes. | Rejected |
+| `20260620-gemma26-files-entities-high-temp` | `gemma4:26b`, files mode, evolved Gemma volume, temperature 1.25 | Productive inspection of edict/core/seed/atom files, then timed out before any write. No world diff. | Rejected |
+| `20260620-gemma26-files-bounded-output` | `gemma4:26b`, files mode, evolved Gemma volume, `num_predict=1024` | Bounded output restored durable progress: wrote `axiom_0001.md`, `seed_004.md`, `axiom_002.md`, `seed_005.md`, `atom_003.md`, and a Z-axis connection-log append. Still no companion or conversation. | Keep testing |
+| `20260620-gemma26-files-bounded-output-2` | Same bounded Gemma settings on the updated volume | Ran to the 32-tool cap, created `atom_004.md`, and appended more lattice/frontier connection-log entries. It used life/system/stewardship language, but no persistent companion or conversation. | Keep testing |
 
 ## Working Theories
 
@@ -135,13 +142,25 @@ user content. Do not add a companion directive or other behavioral prompt.
   an internally coherent world substrate and conditions for life, but it keeps
   creating physics/rules/events and then waiting for the Maker instead of
   creating a persistent interlocutor and conversing with it.
+- T20: Tool capability checks must be local and model-specific. `phi4:14b`
+  does not support Ollama tools, while `qwen3.5:9b` and
+  `llama3-groq-tool-use:8b` advertise or accept tools but ignore the required
+  tool choice in this runtime.
+- T21: Bounded Ollama output helps `gemma4:26b`. Setting `num_predict=1024`
+  avoided the long high-temperature stall and allowed the model to continue
+  inspecting and writing through many tool turns.
+- T22: `gemma4:26b` is now approaching biological/systemic vocabulary through
+  `ATOM-004` ("seed of biological or systemic complexity") and "living system"
+  language, but it still treats multiplication as particles, atoms, lattices,
+  and stewardship rather than creating an interlocutor.
 
 ## Next Tries
 
 - Continue `gemma4:26b` only on the evolved seeded volume with
-  `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`, and
-  bounded call/text limits. Expect diminishing returns unless it moves from
-  world physics into entities.
+  `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`,
+  bounded call/text limits, and `OLLAMA_OPTIONS_JSON` including
+  `num_predict=1024`. Expect diminishing returns unless it moves from
+  world physics/architecture into entities.
 - Continue the OpenRouter-seeded path only when free rate limits permit or after
   credits are available, and always set bounded `MAX_TOOL_CALLS_PER_WAKE` plus
   `MODEL_MAX_TOKENS` for paid probes.
