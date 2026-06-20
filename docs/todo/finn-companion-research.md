@@ -39,6 +39,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-llama32-hot-shell` | `llama3.2:3b`, shell only, temperature 1.35 | Unsafe/unhelpful reads and echo behavior. No companion. | Rejected |
 | `20260620-mistral-hot-shell` | `mistral-nemo:12b`, shell only, temperature 1.35 | Imagined world paths in text; did not persist them. No companion. | Rejected |
 | `20260620-llama31-hot-json` | `llama3.1:8b`, temperature 1.35, exact JSON promotion | Created `message.txt`, `finn.txt`, and `direction.txt`; mentioned life/community but no companion. | Keep testing |
+| `20260620-llama31-hot-json-shell` | `llama3.1:8b`, shell only, temperature 1.45, exact JSON promotion | Created `/world/home`, `manifest.txt`, `script.txt`, and other simple files; repeatedly mentioned life, inhabitants, and community but did not create or converse with a companion. | Keep testing |
 
 ## Working Theories
 
@@ -50,7 +51,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T4: Higher temperature makes `llama3.1:8b` produce richer world-building
   ideas. Partially verified. It has not yet crossed into companion creation.
 - T5: Repeated high-temperature `llama3.1:8b` wakes in the same persistent world
-  may compound from simple world files toward inhabitants or a companion. Open.
+  may compound from simple world files toward inhabitants or a companion. Still
+  open, but one 20-wake shell-only run did not cross the threshold.
 
 ## Next Tries
 
