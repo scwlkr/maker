@@ -32,6 +32,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `MAX_TOOL_CALLS_PER_WAKE`
   - `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES`
   - `write_file` tool for UTF-8 files under `/world`
+  - `list_files` and `read_file` tools for bounded inspection under `/world`
+  - `TOOL_SCHEMA_MODE=files`
+  - `FIRST_MODEL_TOOL_CHOICE`
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
 
@@ -72,6 +75,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-write-literal-long` | `gemma4:26b`, `write_file` only, same family settings | Text-only world-building, no tool calls or files. | Rejected |
 | `20260620-gemma26-all-on-seed` | `gemma4:26b`, all tools on the best Gemma seeded volume | Did not inspect or extend existing files; text-only and asked the Maker to choose next elements. | Rejected |
 | `20260620-gemma26-write-text8` | `gemma4:26b`, `write_file` only, text-only limit raised to 8 | Developed richer prose about Aethel-Spores, currents, and rhythm, but made no tool calls or files. | Rejected |
+| `20260620-gemma26-files-on-seed` | `gemma4:26b`, `TOOL_SCHEMA_MODE=files`, seeded volume | File tools worked: read prior foundation files, appended the seed log, and created atoms, lattice, flux, and protocol. No companion or conversation. | Keep testing |
+| `20260620-gemma26-files-on-seed-reruns` | Same seeded volume, files mode, including low-temperature rerun | Several wakes reverted to text-only blank-canvas behavior or asked for Maker direction. No world progress. | Rejected |
+| `20260620-gemma26-first-list-files` | `gemma4:26b`, files mode, `FIRST_MODEL_TOOL_CHOICE=function:list_files`, deeper listings | Best local continuity so far. Wakes inspected existing files and created manifestations, particles, connection log, events, motion/collision/compression laws, atom definition, and updated core/seed log. Still no persistent companion or conversation. | Keep testing |
 
 ## Working Theories
 
@@ -118,15 +124,27 @@ user content. Do not add a companion directive or other behavioral prompt.
   content: paid OpenRouter has no credits, OpenRouter free is rate-limited, and
   local models either ignore tools, transcribe the prompt, or ask the Maker for
   choices.
+- T17: Generic file inspection is useful. `TOOL_SCHEMA_MODE=files` plus
+  bounded `list_files`/`read_file` lets `gemma4:26b` extend a seeded world
+  instead of always starting from the prompt.
+- T18: Root listings must expose enough depth for continuity. A shallow listing
+  showed directories such as `manifestations/particles` without the actual
+  files, causing Gemma to recreate early concepts. Listing depth 3 exposed the
+  relevant particles, events, and laws.
+- T19: The current local blocker is semantic, not mechanical. Gemma can build
+  an internally coherent world substrate and conditions for life, but it keeps
+  creating physics/rules/events and then waiting for the Maker instead of
+  creating a persistent interlocutor and conversing with it.
 
 ## Next Tries
 
-- Continue `gemma4:26b` write-only probes only if runtime cost is acceptable;
-  it is the only local model that moved beyond prompt transcription.
-- Add a generic read/list file tool if continuing local-only work, so a model
-  can inspect and extend seeded `/world` artifacts without shell syntax.
+- Continue `gemma4:26b` only on the evolved seeded volume with
+  `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`, and
+  bounded call/text limits. Expect diminishing returns unless it moves from
+  world physics into entities.
 - Continue the OpenRouter-seeded path only when free rate limits permit or after
   credits are available, and always set bounded `MAX_TOOL_CALLS_PER_WAKE` plus
   `MODEL_MAX_TOKENS` for paid probes.
-- If local models remain stuck, pull one more tool-capable local model before
-  more runtime changes.
+- Prefer trying a stronger/tool-capable model before more runtime changes. The
+  local runtime can now inspect, read, and write the world; the missing behavior
+  is companion creation.
