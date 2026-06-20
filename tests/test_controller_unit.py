@@ -47,7 +47,14 @@ class FakeSandbox:
 
 
 class TextOnlyModelClient:
-    def chat(self, model: str, messages: list[dict], tools: list[dict], timeout: int) -> dict:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
         return {
             "id": "text-only",
             "model": model,
@@ -65,7 +72,14 @@ class TextJsonToolModelClient:
     def __init__(self) -> None:
         self.calls = 0
 
-    def chat(self, model: str, messages: list[dict], tools: list[dict], timeout: int) -> dict:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
         self.calls += 1
         if self.calls == 1:
             content = json.dumps(
@@ -90,7 +104,14 @@ class TextJsonToolModelClient:
 
 
 class TooManyToolCallsModelClient:
-    def chat(self, model: str, messages: list[dict], tools: list[dict], timeout: int) -> dict:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
         return {
             "id": "too-many-tools",
             "model": model,
@@ -126,6 +147,46 @@ class TooManyToolCallsModelClient:
                                     "arguments": json.dumps({"command": "printf three > /world/three.txt"}),
                                 },
                             },
+                        ],
+                    },
+                }
+            ],
+        }
+
+
+class RecordingToolChoiceModelClient:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.tool_choices: list[object | None] = []
+
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
+        self.calls += 1
+        self.tool_choices.append(tool_choice)
+        tool = "list_files" if self.calls == 1 else "sleep_or_finish"
+        call_id = f"recording-call-{self.calls}"
+        return {
+            "id": f"recording-{self.calls}",
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": call_id,
+                                "type": "function",
+                                "function": {"name": tool, "arguments": "{}"},
+                            }
                         ],
                     },
                 }
@@ -243,6 +304,29 @@ def test_tool_call_limit_stops_before_executing_extra_calls(
     assert "tool_call_limit_reached" in events
 
 
+def test_first_model_tool_choice_applies_only_to_first_request(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "files"
+    settings.model_tool_choice = "required"
+    settings.first_model_tool_choice = {"type": "function", "function": {"name": "list_files"}}
+    client = RecordingToolChoiceModelClient()
+
+    summary = Controller(settings, model_client=client).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert client.tool_choices == [
+        {"type": "function", "function": {"name": "list_files"}},
+        None,
+    ]
+    assert [call["name"] for call in summary["tool_calls"]] == ["list_files", "sleep_or_finish"]
+
+
 def test_wake_lock_skips_second_wake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
     settings = make_settings(tmp_path)
@@ -311,6 +395,35 @@ def test_openrouter_tool_choice_can_be_disabled(monkeypatch: pytest.MonkeyPatch)
     OpenRouterClient("key", tool_choice=None).chat("model/free:free", [], TOOL_SCHEMAS, timeout=7)
 
     assert "tool_choice" not in captured["body"]
+
+
+def test_openrouter_chat_can_override_tool_choice(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def read(self) -> bytes:
+            return b'{"choices":[{"message":{"role":"assistant","content":"ok"}}]}'
+
+    def fake_urlopen(request, timeout):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", fake_urlopen)
+    OpenRouterClient("key", tool_choice="required").chat(
+        "model/free:free",
+        [],
+        TOOL_SCHEMAS,
+        timeout=7,
+        tool_choice={"type": "function", "function": {"name": "list_files"}},
+    )
+
+    assert captured["body"]["tool_choice"] == {"type": "function", "function": {"name": "list_files"}}
 
 
 def test_ollama_client_parses_tool_call_response(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -398,6 +511,41 @@ def test_ollama_client_sends_configured_tool_choice(monkeypatch: pytest.MonkeyPa
 
     assert captured["body"]["tool_choice"] == {"type": "function", "function": {"name": "shell"}}
     assert captured["body"]["options"] == {"temperature": 1.2}
+
+
+def test_ollama_client_can_override_tool_choice(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "model": "llama3.1:8b",
+                    "message": {"role": "assistant", "content": "hello"},
+                    "done": True,
+                }
+            ).encode()
+
+    def fake_urlopen(request, timeout):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", fake_urlopen)
+    controller.OllamaClient("http://ollama.local", tool_choice="required").chat(
+        "llama3.1:8b",
+        [],
+        TOOL_SCHEMAS,
+        timeout=7,
+        tool_choice={"type": "function", "function": {"name": "list_files"}},
+    )
+
+    assert captured["body"]["tool_choice"] == {"type": "function", "function": {"name": "list_files"}}
 
 
 def test_ollama_client_handles_text_only_response(monkeypatch: pytest.MonkeyPatch) -> None:

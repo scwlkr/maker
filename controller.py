@@ -54,12 +54,20 @@ class Settings:
     mock_model: bool
     ollama_options: dict[str, Any] | None = None
     model_tool_choice: Any | None = None
+    first_model_tool_choice: Any | None = None
     tool_schema_mode: str = "all"
     text_tool_call_mode: str = "disabled"
 
 
 class ModelClient(Protocol):
-    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        timeout: int,
+        tool_choice: Any | None = None,
+    ) -> dict[str, Any]:
         ...
 
 
@@ -75,14 +83,22 @@ class OpenRouterClient:
         self.max_tokens = max_tokens
         self.url = "https://openrouter.ai/api/v1/chat/completions"
 
-    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        timeout: int,
+        tool_choice: Any | None = None,
+    ) -> dict[str, Any]:
+        active_tool_choice = self.tool_choice if tool_choice is None else tool_choice
         body = {
             "model": model,
             "messages": messages,
             "tools": tools,
         }
-        if self.tool_choice is not None:
-            body["tool_choice"] = self.tool_choice
+        if active_tool_choice is not None:
+            body["tool_choice"] = active_tool_choice
         if self.max_tokens is not None:
             body["max_tokens"] = self.max_tokens
         request = urllib.request.Request(
@@ -116,15 +132,23 @@ class OllamaClient:
         self.options = options
         self.url = f"{self.base_url}/api/chat"
 
-    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        timeout: int,
+        tool_choice: Any | None = None,
+    ) -> dict[str, Any]:
+        active_tool_choice = self.tool_choice if tool_choice is None else tool_choice
         body = {
             "model": model,
             "messages": ollama_request_messages(messages),
             "tools": tools,
             "stream": False,
         }
-        if self.tool_choice is not None:
-            body["tool_choice"] = self.tool_choice
+        if active_tool_choice is not None:
+            body["tool_choice"] = active_tool_choice
         if self.options is not None:
             body["options"] = self.options
         request = urllib.request.Request(
@@ -159,7 +183,14 @@ class MockModelClient:
                 {"tool": "sleep_or_finish", "arguments": {}},
             ]
 
-    def chat(self, model: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]], timeout: int) -> dict[str, Any]:
+    def chat(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        timeout: int,
+        tool_choice: Any | None = None,
+    ) -> dict[str, Any]:
         if self.calls >= len(self.steps):
             step = {"tool": "sleep_or_finish", "arguments": {}}
         else:
@@ -240,6 +271,7 @@ class Controller:
             "ollama_options": self.settings.ollama_options,
             "models_attempted": [],
             "model_tool_choice": self.settings.model_tool_choice,
+            "first_model_tool_choice": self.settings.first_model_tool_choice,
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
@@ -289,7 +321,12 @@ class Controller:
                     )
                     break
 
-                response, used_model, response_info = self._chat_with_fallbacks(messages, wake_id)
+                first_turn_tool_choice = self.settings.first_model_tool_choice if not summary["model_responses"] else None
+                response, used_model, response_info = self._chat_with_fallbacks(
+                    messages,
+                    wake_id,
+                    tool_choice_override=first_turn_tool_choice,
+                )
                 summary["model"] = used_model
                 summary["model_responses"].append(response_info)
                 choice = response.get("choices", [{}])[0]
@@ -433,16 +470,28 @@ class Controller:
                 time.sleep(1)
         self.maker_place.append_event("controller_loop_end")
 
-    def _chat_with_fallbacks(self, messages: list[dict[str, Any]], wake_id: str) -> tuple[dict[str, Any], str, dict[str, Any]]:
+    def _chat_with_fallbacks(
+        self,
+        messages: list[dict[str, Any]],
+        wake_id: str,
+        tool_choice_override: Any | None = None,
+    ) -> tuple[dict[str, Any], str, dict[str, Any]]:
         errors: list[str] = []
         for model in [self.settings.model, *self.settings.model_fallbacks]:
             try:
-                response = self.model_client.chat(model, messages, self.tool_schemas, self.settings.model_timeout_seconds)
+                response = self.model_client.chat(
+                    model,
+                    messages,
+                    self.tool_schemas,
+                    self.settings.model_timeout_seconds,
+                    tool_choice=tool_choice_override,
+                )
+                active_tool_choice = tool_choice_override if tool_choice_override is not None else self.active_tool_choice()
                 info = model_response_info(
                     response,
                     model,
                     provider=self.settings.model_provider,
-                    required_tool_choice_requested=tool_choice_requests_tool(self.active_tool_choice()),
+                    required_tool_choice_requested=tool_choice_requests_tool(active_tool_choice),
                 )
                 self.maker_place.append_event("model_response", wake_id, **info)
                 if not info["has_tool_calls"] and info["required_tool_choice_requested"]:
@@ -837,6 +886,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         sandbox=settings_from_env(repo_root),
         mock_model=os.getenv("MOCK_MODEL", "0") == "1",
         model_tool_choice=parse_model_tool_choice(os.getenv("MODEL_TOOL_CHOICE")),
+        first_model_tool_choice=parse_model_tool_choice(os.getenv("FIRST_MODEL_TOOL_CHOICE")),
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
     )
