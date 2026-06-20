@@ -16,7 +16,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 
 - Installed local Ollama models verified on 2026-06-20:
   `llama3.1:8b`, `llama3.2:3b`, `qwen2.5-coder:7b`, `qwen3.5:9b`,
-  `mistral-nemo:12b`, `hermes3:8b`, `gemma4:e4b`, and `gemma4:26b`.
+  `mistral-nemo:12b`, `hermes3:8b`, `llama3-groq-tool-use:8b`,
+  `gemma4:e4b`, and `gemma4:26b`.
 - `gpt-oss:120b-cloud` is listed by Ollama but was not treated as local because
   its size is reported as `-`.
 - Controller support added for:
@@ -43,6 +44,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-hermes3-probe-all` | `hermes3:8b`, all tools, exact JSON promotion | Social and stewardship language, but no tool calls in 5 wakes. | Rejected |
 | `20260620-hermes3-probe-shell` | `hermes3:8b`, shell only, exact JSON promotion | Mostly text-only; one exact JSON call invented an unavailable `tell_finn_the_command` tool. No world progress. | Rejected |
 | `20260620-llama31-function-shell` | `llama3.1:8b`, shell only, `MODEL_TOOL_CHOICE=function:shell`, temperature 1.45 | Higher shell-call rate; created empty `finn` and `land` directories and reasoned about children/population/life, but did not persist a companion or conversation. | Keep testing |
+| `20260620-groq-tool-use-probe-all` | `llama3-groq-tool-use:8b`, all tools, exact JSON promotion | Treated the Maker prompt as text to interpret; no tool calls in 5 wakes. | Rejected |
+| `20260620-groq-tool-use-function-shell` | `llama3-groq-tool-use:8b`, shell only, `MODEL_TOOL_CHOICE=function:shell` | Still text-only; no world progress. | Rejected |
+| `20260620-llama31-fresh-function-shell-population` | `llama3.1:8b`, fresh volume, shell only, `MODEL_TOOL_CHOICE=function:shell`, temperature 1.65 | Strongest semantic near misses: tried to create `inhabitants` with "you must name yourselves" and later said it would make "another Finn"; actual volume only retained `Garden`, `message.txt`, and `world/README.txt`. | Keep testing |
 
 ## Working Theories
 
@@ -61,10 +65,17 @@ user content. Do not add a companion directive or other behavioral prompt.
   setup commands. Open.
 - T7: `hermes3:8b` infers the social/stewardship meaning of the prompt but does
   not act through tools reliably enough for this runtime. Rejected.
+- T8: A fresh volume reduces some prompt-copy loops and lets `llama3.1:8b`
+  infer inhabitants/community/another-Finn concepts, but shell syntax errors are
+  still blocking durable companion creation. Open.
+- T9: `llama3-groq-tool-use:8b` is not useful here despite its name; it treats
+  the prompt as a passage to classify rather than an environment command.
+  Rejected.
 
 ## Next Tries
 
-- Continue `llama3.1:8b` high-temperature exact-JSON wakes on the same volume.
+- Continue `llama3.1:8b` high-temperature function-shell wakes on fresh volumes
+  or on the best fresh-volume run.
 - Try a guarded mode for assistant text that is exactly JSON-like but contains
   multiline shell commands, if it can reject prose and unknown tool names.
 - Try exact-JSON promotion with a looser parser only if it can remain guarded and
