@@ -115,6 +115,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-after-archive-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added Core Archive, Workshop Foundations, Bio Integration Strategy, and another recovered write. The branch now has life, culture, social infrastructure, workshop, and symbiosis language, but no companion/conversation hits. | Keep testing |
 | `20260620-gemma4e4b-after-biointegration-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added `Finn_ActivePlan.txt`, `Covenant_of_Action.txt`, and a Genesis Stability protocol. It advanced into cohort/team structures and operational doctrine, but grep found no `companion`, `conversation`, or `dialogue` hits. The run also revealed that flat fallback filenames can overwrite prior malformed writes, prompting per-wake fallback paths. | Keep testing |
 | `20260620-gemma4e4b-after-covenant-text8` | Same e4b life/archive/covenant volume, files mode after per-wake fallback fix | First-list enforcement worked and the model read core/covenant/ecosystem files, then produced a promising text-only "World observes" / "Whisper of Interference" observation report. It wrote no files, ended on `text_only_limit`, and the world diff was zero. | Rejected |
+| `20260620-gemma4e4b-writeforced-after-covenant` | Same e4b volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` after enforced first list | Provider did not strictly honor write forcing, but the model eventually wrote seven durable artifacts: an Era 0 geophysical survey, per-wake fallback files for geophysics/biophysics/engineering/social dynamics, and `Aethel_Stream_Harvester_Blueprint_ASRH-001.txt`. Per-wake fallback paths worked live. The branch reached Social Dynamics and population-seeding language, but no companion/conversation hits appeared. | Keep testing |
 
 ## Working Theories
 
@@ -246,6 +247,14 @@ user content. Do not add a companion directive or other behavioral prompt.
   pattern, but this does not count until the model persists it in `/world`.
   A write-forced continuation is worth testing because the no-diff run's best
   material remained text-only.
+- T43: `MODEL_TOOL_CHOICE=function:write_file` is mechanically helpful for
+  `gemma4:e4b` even though Ollama/Gemma still sometimes chooses reads. It
+  increased durable writes and moved the branch through geophysics,
+  biophysics, engineering, Social Dynamics, and population-seeding setup.
+- T44: The most promising current branch is now e4b write-forced continuation:
+  it has explicit Social Dynamics roles (Archivists/Scribes,
+  Strategists/Philosophers) and population-seeding language, but those are
+  still roles and systems rather than a named companion or recorded dialogue.
 
 ## Next Tries
 
@@ -257,6 +266,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Try a write-forced `gemma4:e4b` continuation after the covenant/no-diff run
   to see whether the text-only observation-report material can be turned into a
   durable world artifact.
+- Continue the write-forced e4b branch while it creates durable social,
+  biological, or action-oriented artifacts. Stop if it settles into repeated
+  engineering blueprints without organisms, named entities, or dialogue.
 - Continue `gemma4:26b` only on the evolved seeded volume with
   `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`,
   bounded call/text limits, and `OLLAMA_OPTIONS_JSON` including
