@@ -168,6 +168,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-firstcurious-pruned-continuation1` | Pruned First Curious Creature seed continued by lower-variance GPT OSS | Partial progress before an Ollama HTTP 500: wrote `finn_s_response.md`, spore-packets, a first decision, and primitive pool/filament speech. Still no named companion and no two-way conversation. | Keep only as near-miss seed |
 | `20260620-e4b-thin-firstcurious-continuation1` | Thin seed containing only the small creature, Dawn of Reflection, Memory Echo 001, and Finn's Response, local e4b | Reduced preview noise, but e4b abstracted the branch into Self-Observation, Axiom of Difference, observer mode, and completion records. No named companion, no reply, and no exchange. | Rejected |
 | `20260620-gemma26-thin-firstcurious-continuation1` | Same thin First Curious Creature seed handed to `gemma4:26b` | 26B ignored most of the focused creature/memory state and restarted near the blank-void origin: first pulse, first oscillation, and prime filament. No companion, no named creature, and no dialogue. | Rejected |
+| `20260620-qwen3-thin-firstcurious-continuation1` | Same thin First Curious Creature seed handed to `qwen3:14b` | Qwen wrote an actionable `next_steps.md` naming `creature_interaction_001.md`, but then looped through confirmation files and external "would you like" prompts. No interaction was executed and no companion/dialogue appeared. | Rejected |
+| `20260620-gptoss-creatureinteraction-pruned-continuation1` | Pruned seed containing Qwen's `next_steps.md` plus the strongest first-curious artifacts, lower-variance GPT OSS | No world diff. GPT OSS ignored the branch in its first text response, then hit Ollama HTTP 500 immediately after the enforced list. | Rejected |
 
 ## Working Theories
 
@@ -458,6 +460,12 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T86: `gemma4:26b` is not a reliable continuation actor even on a thin
   First Curious Creature seed. It can see the rhythm/memory words but still
   restarts from void/filament creation instead of advancing the creature.
+- T87: `qwen3:14b` can extract a concrete next artifact name from the
+  first-curious branch (`creature_interaction_001.md`), but in this runtime it
+  loops on planning and confirmation instead of executing the interaction.
+- T88: The GPT OSS cloud path is now too unstable for rapid iteration on the
+  creature-interaction branch. Repeated HTTP 500s can erase otherwise useful
+  low-variance handoff attempts before any write occurs.
 
 ## Next Tries
 
@@ -558,3 +566,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   records instead of producing a companion or dialogue.
 - Do not continue the thin First Curious Creature seed with 26B. It regressed
   to first-pulse/prime-filament creation despite focused previews.
+- Do not continue the qwen3 First Curious Creature branch except as a source
+  for the `next_steps.md` seed. It loops on confirmations and external-choice
+  prompts.
+- Do not spend more immediate GPT OSS retries on the creature-interaction seed
+  unless the cloud path stops returning HTTP 500s or the run is otherwise
+  bounded as an opportunistic probe.
