@@ -129,6 +129,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-academy-continuation-1` | Same e4b Academy volume, files mode, `MODEL_TOOL_CHOICE=required` | Read Academy/material/geology context and created `Alpha_Site_01_FieldLog.md` plus a semantic fallback field-log header. It moved from curriculum into Alpha-Site field execution and team/commander language, but new files had no companion, dialogue, or named interlocutor evidence. | Keep testing only while field execution continues |
 | `20260620-gemma4e4b-field-writeforced-1` | Same e4b field volume, files mode, `MODEL_TOOL_CHOICE=function:write_file`, 20-call cap | Text recovery wrote 13 per-wake fallback files and updated `Covenant_of_Action.txt`, but the branch regressed to Master Stewardship/Genesis Stability planning. New wake grep found no companion, dialogue, student, apprentice, mentor, or named-interlocutor evidence. | Rejected |
 | `20260620-gemma4e4b-fresh-writeonly-highvar-1` | Fresh e4b volume, `TOOL_SCHEMA_MODE=write-only`, `MODEL_TOOL_CHOICE=function:write_file`, high variance | Wrote 16 recovered/mythic creation files into a fresh `_finn/<wake>/` directory. The run stayed at world-generation narration and had no companion, dialogue, or interlocutor evidence. | Rejected |
+| `20260620-llama31-fresh-writeonly-highvar-1` | Fresh `llama3.1:8b` volume, write-only, `MODEL_TOOL_CHOICE=function:write_file`, high variance | Created one `world/commands/making_your_world.txt` file and many recovered tool-result/meta-assistant notes. It did not reproduce earlier "another Finn" behavior and had no companion or dialogue evidence. | Rejected |
 
 ## Working Theories
 
@@ -307,6 +308,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   semantically weak for this goal. Without the files-mode continuity path, e4b
   reverts to mythic world-generation narration instead of creating durable
   organisms, students, or companions.
+- T55: `llama3.1:8b` write-only recovery does not recover its earlier
+  shell-only "another Finn" near miss. In this setup it focuses on generic
+  assistant/tool-result chatter rather than inhabiting the Maker prompt.
 
 ## Next Tries
 
