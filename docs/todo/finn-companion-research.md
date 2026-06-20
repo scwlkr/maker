@@ -101,6 +101,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss120b-all-tools-after-cube` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created seeds `013` through `015` and `manifestations/events/event_003.md`. It introduced "The Whisper" as a quiet voice, but only as particle imagery. It also attempted unavailable `append_file`, which led to adding that generic tool. | Keep testing |
 | `20260620-gptoss120b-files-append-after-cube` | Same enforced `gpt-oss:120b-cloud` volume, files mode after adding `append_file` | Created seeds `016` and `017`, but did not use `append_file` and still stayed in geometric seed generation. Companion/conversation scan remained empty. | Rejected |
 | `20260620-openrouter-free-enforced-on-gptoss-seed` | OpenRouter free fallback set on a clone of the productive `gpt-oss` seed volume, files mode with enforced first list | First-list enforcement worked and one fallback read existing files, but OpenRouter free models hit daily/upstream 429s. The model responses were planning/advice text, ended in `controller_error`, and the wake summary had zero diff lines. | Blocked by free limits |
+| `20260620-gptoss120b-all-tools-append-after-whisper` | Same enforced `gpt-oss:120b-cloud` volume, all tools after `append_file` support | Created `seed_018.md`, explicitly committing Finn to fill the world with "life and purpose", then stalled. No companion/conversation hits. | Keep testing |
+| `20260620-gptoss120b-all-tools-after-seed018` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created seeds `019` through `021` and used the new `append_file` tool to extend `connection_log.md`. It advanced toward a "Molecule" concept, but still no interlocutor. | Keep testing |
+| `20260620-llama31-all-enforced-on-gptoss-seed` | `llama3.1:8b`, all tools, cloned current `gpt-oss` world, high temperature, enforced first list | Enforcement worked but Llama narrated the file listing back, made no tool calls after the enforced list, and produced zero diff. | Rejected |
+| `20260620-gptoss120b-all-tools-after-seed021` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created `seed_022.md` and appended two connection-log links. The model planned `seed_023` and a molecule, but no companion/conversation artifact appeared. | Keep testing |
 
 ## Working Theories
 
@@ -201,6 +205,15 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T32: OpenRouter free fallbacks can occasionally inspect files after the
   enforced first listing, but the account is currently blocked by daily and
   upstream 429 limits before a full mutating wake can run.
+- T33: The explicit `append_file` alias is useful once `gpt-oss:120b-cloud`
+  enters a multi-tool wake. It can append continuity logs without falling back
+  to shell, but it has not changed the branch's semantic target.
+- T34: The `gpt-oss:120b-cloud` branch is no longer mechanically blocked. It
+  can repeatedly inspect, write, and append, but it is following a self-chosen
+  lattice/molecule progression instead of self-multiplying into a companion.
+- T35: Re-running `llama3.1:8b` against the richer seeded world does not recover
+  its earlier "another Finn" near miss. With enforced first listing it still
+  treats the task as text analysis and makes no durable changes.
 
 ## Next Tries
 
@@ -219,3 +232,6 @@ user content. Do not add a companion directive or other behavioral prompt.
   `append_file` exists, because the previous all-tools wake both introduced the
   first "voice" language and attempted the append alias before the runtime
   supported it.
+- Continue the `gpt-oss:120b-cloud` branch only if its next durable writes move
+  beyond coordinate seeds into molecules, organisms, named entities, or
+  dialogue. Coordinate-only seed creation is now low-value.
