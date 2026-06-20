@@ -609,15 +609,19 @@ class ToolRunner:
             'find "$target" -mindepth 1 -maxdepth 3 -printf "%y %s %p\\n" | sort | head -n 200; '
             "fi"
         )
+        preview_file_limit = 0
         if self.list_files_preview_chars > 0:
             preview_chars = min(self.list_files_preview_chars, self.max_tool_output_chars)
+            preview_file_limit = max(1, min(24, self.max_tool_output_chars // max(1, preview_chars)))
             command += (
                 f"; preview_chars={preview_chars}; "
+                f"preview_file_limit={preview_file_limit}; "
                 'printf "\\n# File previews\\n"; '
                 'if [ -f "$target" ]; then '
                 'find "$target" -maxdepth 0 -type f; '
                 "else "
-                'find "$target" -mindepth 1 -maxdepth 3 -type f | sort | head -n 12; '
+                'find "$target" -mindepth 1 -maxdepth 3 -type f -printf "%T@ %p\\n" | '
+                'sort -rn | head -n "$preview_file_limit" | cut -d " " -f2-; '
                 "fi | "
                 'while IFS= read -r file; do '
                 'printf "\\n## %s\\n" "$file"; '
@@ -631,6 +635,7 @@ class ToolRunner:
             tool="list_files",
             path=path,
             preview_chars=self.list_files_preview_chars,
+            preview_file_limit=preview_file_limit,
         )
         result = self.sandbox.exec_bash(command)
         summary = result.for_tool(self.max_tool_output_chars)

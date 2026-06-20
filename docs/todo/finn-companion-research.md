@@ -37,7 +37,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `FIRST_MODEL_TOOL_CHOICE`
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
-  - optional `LIST_FILES_PREVIEW_CHARS` bounded file previews in `list_files`
+  - optional `LIST_FILES_PREVIEW_CHARS` bounded newest-file previews in
+    `list_files`
   - optional `NORMALIZE_SHELL_COMMANDS=1` repair for common model shell
     punctuation mistakes such as `/cd` and comma-separated command sequences
   - `append_file` alias for appending UTF-8 text under `/world`

@@ -261,8 +261,12 @@ def test_list_files_tool_can_include_file_previews(tmp_path: Path) -> None:
     assert "File previews" in sandbox.command
     assert "head -c \"$preview_chars\" -- \"$file\"" in sandbox.command
     assert "preview_chars=80" in sandbox.command
+    assert "preview_file_limit=24" in sandbox.command
+    assert 'find "$target" -mindepth 1 -maxdepth 3 -type f -printf "%T@ %p\\n"' in sandbox.command
+    assert 'sort -rn | head -n "$preview_file_limit"' in sandbox.command
     events = (tmp_path / "maker-place" / "events.jsonl").read_text()
     assert '"preview_chars": 80' in events
+    assert '"preview_file_limit": 24' in events
 
 
 def test_read_file_tool_reads_bounded_path_and_records_result(tmp_path: Path) -> None:
