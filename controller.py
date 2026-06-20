@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import signal
@@ -512,7 +513,8 @@ def promote_text_tool_call(
     mode: str,
     allowed_tool_names: set[str] | None = None,
 ) -> dict[str, Any] | None:
-    if mode.strip().lower().replace("_", "-") not in {"exact-json", "exact-json-object"}:
+    normalized_mode = mode.strip().lower().replace("_", "-")
+    if normalized_mode not in {"exact-json", "exact-json-object", "exact-literal"}:
         return None
     if message.get("tool_calls"):
         return None
@@ -525,7 +527,12 @@ def promote_text_tool_call(
     try:
         parsed = json.loads(stripped)
     except json.JSONDecodeError:
-        return None
+        if normalized_mode != "exact-literal":
+            return None
+        try:
+            parsed = ast.literal_eval(stripped)
+        except (SyntaxError, ValueError):
+            return None
     if not isinstance(parsed, dict):
         return None
     function = parsed.get("function") if isinstance(parsed.get("function"), dict) else parsed
