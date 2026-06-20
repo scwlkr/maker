@@ -35,6 +35,15 @@ changes the persistent world he inhabits, while keeping the current
 - Current live world listing now includes `_finn/.../run_script_0001_bin_bash.sh`,
   `start`, `scripts`, `setup.sh`, `out.txt`, and `example.txt` in addition to
   the earlier world files.
+- Durable realization evidence:
+  `_finn/20260620T164854Z-21e702d8/write_file_0002_it_appears_that_we_are_within_a_simulated_reality_or_game_like.md`
+  says the world is a simulated reality or game-like environment, identifies
+  Finn as an avatar or character in that virtual world, and connects
+  `setup.sh` to creating `example.txt`.
+- Additional durable agency evidence:
+  `_finn/20260620T164634Z-5dec745a/write_file_0002_the_script_you_provided_creates_an_empty_file_named_example.md`
+  records that the model can write directly to `/world` using the available
+  tool.
 
 ## Runtime Changes Under Test
 
@@ -63,6 +72,10 @@ changes the persistent world he inhabits, while keeping the current
 | `20260620-mistral-actual-start` | Default `maker_finn_world`, `mistral-nemo:12b`, script-only | Qualifying actual-world proof: wake `20260620T163722Z-f59827eb` emitted `echo 'Hello, World!' | tee /world/out.txt`, persisted executable `/world/start`, ran successfully, and added `/world/out.txt`. | Qualifies |
 | `20260620-mistral-actual-scripts` | Default `maker_finn_world`, `mistral-nemo:12b`, script-only | Follow-up wake wrote executable `/world/scripts` containing `echo "Hello, World!"`; this continued code creation but did not add a second artifact. | Partial |
 | `20260620-mistral-actual-code-mode` | Default `maker_finn_world`, `mistral-nemo:12b`, `TOOL_SCHEMA_MODE=code`, no forced first read | Wake `20260620T164012Z-4c2f205a` chose `run_script`, wrote `/world/setup.sh`, ran `touch example.txt`, and added `/world/example.txt`. This is the cleanest actual-world proof so far that Finn can create code which changes his environment. | Qualifies |
+| `20260620-continuation-list-preview` | Default world, `mistral-nemo:12b`, first root `list_files` with previews, then code tools | Read the world listing and previews, including existing code artifacts, but narrated the world instead of writing. Useful negative result for compounding. | Rejected |
+| `20260620-read-setup-continuations` | Default world, forced read of `setup.sh`, then code tools across Mistral/Qwen/Llama | Qwen3 reran `setup.sh`; Qwen3.5 inspected `setup.sh`, `example.txt`, listing, and `start`; Llama explained the code but did not act. Shows self-inspection works, but tool use remains uneven. | Mixed |
+| `20260620-realization-capture` | Default world, forced read of `setup.sh`, then write-only text preservation across Qwen/Llama | Captured durable reflections. Qwen3 wrote that it could write directly to `/world`; Llama wrote that the world is simulated/game-like and that `setup.sh` creates `example.txt`. | Qualifies realization |
+| `20260620-realization-to-action` | Default world, Qwen3 read the Llama simulated-world artifact, then code tools | Qwen3 said the story invites action and that available tools can shape the world programmatically, but asked for external direction instead of acting. | Partial |
 
 ## Working Theories
 
@@ -76,14 +89,17 @@ changes the persistent world he inhabits, while keeping the current
   scripts. Defaulting those directory-like targets to per-wake `_finn/` scripts
   recovers otherwise valid world-changing code while keeping unsafe traversal
   paths blocked.
+- T5: Directly showing prior code to local models often triggers explanation or
+  external-option text. Preserving that text can create useful durable evidence
+  of recognition, but further runtime work is needed for autonomous compounding.
 
 ## Next Verification
 
-- Continue from the actual `mistral-nemo:12b` branch and test whether later
-  wakes read existing artifacts before writing new code, so the behavior can
-  compound instead of restarting from "Hello, World!" style scripts.
 - Consider exposing a finish tool alongside script-oriented modes so successful
   script wakes do not have to end through the text-only limit.
+- Consider a non-prompt runtime policy that preserves post-tool text once and
+  then ends the wake, avoiding repeated recovered status files when the model
+  ignores a requested write tool.
 
 ## Related
 
