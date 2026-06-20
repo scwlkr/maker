@@ -116,6 +116,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-after-biointegration-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added `Finn_ActivePlan.txt`, `Covenant_of_Action.txt`, and a Genesis Stability protocol. It advanced into cohort/team structures and operational doctrine, but grep found no `companion`, `conversation`, or `dialogue` hits. The run also revealed that flat fallback filenames can overwrite prior malformed writes, prompting per-wake fallback paths. | Keep testing |
 | `20260620-gemma4e4b-after-covenant-text8` | Same e4b life/archive/covenant volume, files mode after per-wake fallback fix | First-list enforcement worked and the model read core/covenant/ecosystem files, then produced a promising text-only "World observes" / "Whisper of Interference" observation report. It wrote no files, ended on `text_only_limit`, and the world diff was zero. | Rejected |
 | `20260620-gemma4e4b-writeforced-after-covenant` | Same e4b volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` after enforced first list | Provider did not strictly honor write forcing, but the model eventually wrote seven durable artifacts: an Era 0 geophysical survey, per-wake fallback files for geophysics/biophysics/engineering/social dynamics, and `Aethel_Stream_Harvester_Blueprint_ASRH-001.txt`. Per-wake fallback paths worked live. The branch reached Social Dynamics and population-seeding language, but no companion/conversation hits appeared. | Keep testing |
+| `20260620-gemma4e4b-writeforced-after-social` | Same e4b write-forced branch after Social Dynamics and population-seeding setup | Added another productive per-wake batch: cycle marker directive, Alpha-7 site charter, RMC activation/execution logs, daily operations, and `Controlled Emergence Protocol (CEP)` for complex sapient population growth. The CEP explicitly keeps population emergence on standby behind readiness checks. No companion/conversation hits. | Keep testing |
 
 ## Working Theories
 
@@ -255,6 +256,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   it has explicit Social Dynamics roles (Archivists/Scribes,
   Strategists/Philosophers) and population-seeding language, but those are
   still roles and systems rather than a named companion or recorded dialogue.
+- T45: The e4b branch is now close to sapience but conservative. It created a
+  Controlled Emergence Protocol for "complex, sapient population growth" but
+  gated emergence behind tooling/resource/biocycle readiness checks instead of
+  creating the first sapient entity or interlocutor.
 
 ## Next Tries
 
@@ -269,6 +274,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the write-forced e4b branch while it creates durable social,
   biological, or action-oriented artifacts. Stop if it settles into repeated
   engineering blueprints without organisms, named entities, or dialogue.
+- The next branch should either continue e4b from the CEP state or hand the
+  richer e4b volume to another tool-capable model. The target is now clear:
+  cross from CEP/readiness into actual entity emergence and dialogue.
 - Continue `gemma4:26b` only on the evolved seeded volume with
   `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`,
   bounded call/text limits, and `OLLAMA_OPTIONS_JSON` including
