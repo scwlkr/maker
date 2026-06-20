@@ -308,6 +308,10 @@ def safe_world_relative_path(value: Any, *, allow_current: bool = False) -> str:
     return str(path)
 
 
+def default_write_path(tool_name: str, call_index: int) -> str:
+    return f"_finn/{tool_name}_{call_index:04d}.md"
+
+
 class ToolRunner:
     def __init__(
         self,
@@ -375,8 +379,32 @@ class ToolRunner:
         tool_name: str = "write_file",
         force_append: bool | None = None,
     ) -> dict[str, Any]:
+        content = str(args.get("content", ""))
         try:
             path = safe_world_relative_path(args.get("path", ""))
+        except ValueError as exc:
+            if str(exc) == "path is required" and content:
+                path = default_write_path(tool_name, call_index)
+                self.maker_place.append_event(
+                    "write_file_path_defaulted",
+                    self.wake_id,
+                    tool=tool_name,
+                    path=path,
+                    arguments=args,
+                )
+            else:
+                result = {"ok": False, "error": str(exc)}
+                self.maker_place.append_event(
+                    "tool_call_error",
+                    self.wake_id,
+                    tool=tool_name,
+                    arguments=args,
+                    error=result["error"],
+                )
+                return result
+
+        try:
+            safe_world_relative_path(path)
         except ValueError as exc:
             result = {"ok": False, "error": str(exc)}
             self.maker_place.append_event(
@@ -388,7 +416,6 @@ class ToolRunner:
             )
             return result
 
-        content = str(args.get("content", ""))
         append = force_append if force_append is not None else args.get("append", False) is True
         operator = ">>" if append else ">"
         command = (

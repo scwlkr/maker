@@ -18,6 +18,8 @@ This file is the compact source of truth for current Maker behavior.
 - Model fallback attempts for the configured provider.
 - Native tool schemas for `shell`, `write_file`, `append_file`, `list_files`,
   `read_file`, `search`, `fetch`, and `sleep_or_finish`.
+- `write_file`/`append_file` calls with content but no path are preserved under
+  deterministic `_finn/` fallback files instead of dropping the content.
 - First-turn `function:list_files` tool choice can be enforced by the controller
   when a provider ignores the requested tool choice.
 - Repeated text-only model responses end the wake after three consecutive

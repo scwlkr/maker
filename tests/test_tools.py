@@ -90,6 +90,27 @@ def test_write_file_tool_uses_stdin_and_records_result(tmp_path: Path) -> None:
     assert "write_file_result" in events
 
 
+def test_write_file_tool_defaults_missing_path_when_content_exists(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+
+    result, should_finish = runner.run(
+        "write_file",
+        {"content": "orphaned text\n"},
+        7,
+    )
+
+    assert should_finish is False
+    assert result["ok"] is True
+    assert result["path"] == "_finn/write_file_0007.md"
+    assert sandbox.input_text == "orphaned text\n"
+    assert "cat > \"$target\"" in sandbox.command
+    events = (tmp_path / "maker-place" / "events.jsonl").read_text()
+    assert "write_file_path_defaulted" in events
+    assert "write_file_result" in events
+
+
 def test_append_file_tool_uses_stdin_and_records_result(tmp_path: Path) -> None:
     sandbox = FakeWriteSandbox()
     maker = MakerPlace(tmp_path / "maker-place")
