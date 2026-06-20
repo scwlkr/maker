@@ -251,6 +251,12 @@ func cmdStop(cfg Config, args []string, out io.Writer) error {
 		if pidRunning(pid) {
 			_ = syscall.Kill(pid, syscall.SIGKILL)
 			forceKilled = true
+			for i := 0; i < 20; i++ {
+				if !pidRunning(pid) {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
 		}
 	}
 	if pidInfo["exists"] == true {
@@ -264,6 +270,7 @@ func cmdStop(cfg Config, args []string, out io.Writer) error {
 			removedContainers = len(containers)
 		}
 	}
+	removedWakeLock := removeStaleWakeLock(filepath.Join(cfg.MakerPlace, "wake.lock"))
 	if cfg.JSON {
 		return writeJSON(out, map[string]any{
 			"status":             "stopped",
@@ -271,12 +278,16 @@ func cmdStop(cfg Config, args []string, out io.Writer) error {
 			"signaled":           signaled,
 			"force_killed":       forceKilled,
 			"removed_containers": removedContainers,
+			"removed_wake_lock":  removedWakeLock,
 			"stop_file":          stopPath,
 		})
 	}
 	fmt.Fprintln(out, "controller stopped")
 	if removedContainers > 0 {
 		fmt.Fprintf(out, "removed sandbox containers: %d\n", removedContainers)
+	}
+	if removedWakeLock {
+		fmt.Fprintln(out, "removed stale wake lock")
 	}
 	return nil
 }
@@ -1679,6 +1690,17 @@ func readJSONFile(path string) (map[string]any, error) {
 		return nil, err
 	}
 	return payload, nil
+}
+
+func removeStaleWakeLock(path string) bool {
+	lock, err := readJSONFile(path)
+	if err != nil {
+		return false
+	}
+	if pidRunning(number(lock["pid"])) {
+		return false
+	}
+	return os.Remove(path) == nil
 }
 
 func readJSONInput(path string, stdin io.Reader) (map[string]any, error) {

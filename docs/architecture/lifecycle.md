@@ -25,6 +25,7 @@ Observed end reasons from source:
 
 - `sleep_or_finish`
 - `context_exhausted`
+- `text_only_limit`
 - `controller_stopped`
 - `controller_error`
 - `unknown`
@@ -35,9 +36,10 @@ The controller tries to write the after snapshot, stop the sandbox container,
 write the wake summary, append `wake_end`, and release the wake lock in a
 `finally` block.
 
-`maker stop` also removes active containers with label `maker.runtime=finn`.
-The legacy `scripts/start.sh` and `scripts/stop.sh` wrappers use the same
-lifecycle files.
+`maker stop` also removes active containers with label `maker.runtime=finn` and
+removes a stale wake lock when the recorded lock pid is no longer running. The
+legacy `scripts/start.sh` and `scripts/stop.sh` wrappers use the same lifecycle
+files.
 
 ## Related
 

@@ -17,6 +17,8 @@ This file is the compact source of truth for current Maker behavior.
 - Model clients for OpenRouter, Ollama, and a local mock model.
 - Model fallback attempts for the configured provider.
 - Native tool schemas for `shell`, `search`, `fetch`, and `sleep_or_finish`.
+- Repeated text-only model responses end the wake after three consecutive
+  responses without tool calls.
 - `fetch` blocks localhost, private, link-local, multicast, reserved,
   unspecified, and metadata-style targets before fetching.
 - Go CLI commands for start, stop, status, events, wakes, show, world, doctor,

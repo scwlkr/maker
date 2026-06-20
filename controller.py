@@ -28,6 +28,9 @@ You have been in this place before, at previous times, but you will not remember
 This place is yours. I give it to you with only one command: “Be fruitful and multiply, and fill this place and subdue it, and have dominion over it.”
 """
 
+MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES = 3
+TEXT_ONLY_LIMIT_REASON = "text_only_limit"
+
 
 @dataclass
 class Settings:
@@ -227,6 +230,7 @@ class Controller:
             )
 
             call_index = 0
+            consecutive_text_only = 0
             while not self._stop_requested:
                 if self.estimated_tokens(messages) >= self.settings.context_limit_tokens:
                     summary["end_reason"] = "context_exhausted"
@@ -254,10 +258,29 @@ class Controller:
 
                 tool_calls = assistant_message.get("tool_calls") or []
                 if not tool_calls:
-                    self.maker_place.append_event("model_text_only", wake_id)
+                    consecutive_text_only += 1
+                    self.maker_place.append_event(
+                        "model_text_only", wake_id, consecutive=consecutive_text_only
+                    )
+                    if consecutive_text_only >= MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES:
+                        summary["end_reason"] = TEXT_ONLY_LIMIT_REASON
+                        error = (
+                            "model returned text-only responses without tool calls "
+                            f"{consecutive_text_only} consecutive times"
+                        )
+                        summary["errors"].append(error)
+                        self.maker_place.append_event(
+                            "text_only_limit_reached",
+                            wake_id,
+                            consecutive=consecutive_text_only,
+                            limit=MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES,
+                            error=error,
+                        )
+                        break
                     time.sleep(self.settings.text_only_delay_seconds)
                     continue
 
+                consecutive_text_only = 0
                 should_finish = False
                 for tool_call in tool_calls:
                     call_index += 1

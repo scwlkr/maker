@@ -21,8 +21,9 @@ maker stop
 
 `maker start` writes `maker-place/controller.pid` and appends output to
 `maker-place/controller.log`. `maker stop` creates `maker-place/stop`, asks the
-process to stop, removes the pid file, and removes active sandbox containers
-with the `maker.runtime=finn` label. The legacy shell wrappers remain available:
+process to stop, removes the pid file, removes active sandbox containers with
+the `maker.runtime=finn` label, and clears a stale wake lock when the recorded
+lock pid is no longer running. The legacy shell wrappers remain available:
 `scripts/start.sh` and `scripts/stop.sh`.
 
 ## Watch Runtime Activity

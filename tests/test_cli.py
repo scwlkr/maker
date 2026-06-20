@@ -197,6 +197,10 @@ def test_go_cli_start_and_stop_commands(repo_root: Path, tmp_path: Path) -> None
     fake_docker.write_text("#!/usr/bin/env bash\nexit 0\n")
     fake_docker.chmod(0o755)
     stop_maker = tmp_path / "stop-maker-place"
+    stop_maker.mkdir()
+    (stop_maker / "wake.lock").write_text(
+        json.dumps({"pid": 0, "started_at": "2026-01-01T00:00:00Z", "wake_id": "stale-wake"})
+    )
     stop = run_maker(
         repo_root,
         ["--maker-place", str(stop_maker), "stop"],
@@ -204,7 +208,9 @@ def test_go_cli_start_and_stop_commands(repo_root: Path, tmp_path: Path) -> None
     )
 
     assert "controller stopped" in stop.stdout
+    assert "removed stale wake lock" in stop.stdout
     assert (stop_maker / "stop").exists()
+    assert not (stop_maker / "wake.lock").exists()
 
 
 def test_go_cli_evaluate_prefers_wake_diff_over_snapshot_presence(repo_root: Path, tmp_path: Path) -> None:

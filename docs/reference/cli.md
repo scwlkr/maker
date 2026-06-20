@@ -46,7 +46,8 @@ maker dashboard --interval 10 --events 8 --last-responses 10
 `start` starts the controller loop in the background and writes
 `maker-place/controller.pid` plus `maker-place/controller.log`. `stop` creates
 the stop file, terminates the recorded controller when present, removes the pid
-file, and removes active Finn sandbox containers.
+file, removes active Finn sandbox containers, and clears a stale wake lock when
+the recorded lock pid is no longer running.
 
 `dashboard` renders runtime state, the current or latest wake, work accomplished,
 recent wakes, and recent events. It also accepts `--once`, `--no-clear`, and

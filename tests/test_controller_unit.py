@@ -108,16 +108,17 @@ def test_text_only_response_logs_required_tool_choice_ignored(
     monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
     FakeSandbox.snapshot = ""
     settings = make_settings(tmp_path)
-    settings.context_limit_tokens = 2000
     maker = MakerPlace(settings.maker_place_dir)
     summary = Controller(settings, maker_place=maker, model_client=TextOnlyModelClient()).run_wake()
 
     assert summary is not None
-    assert summary["end_reason"] == "context_exhausted"
+    assert summary["end_reason"] == "text_only_limit"
+    assert len(summary["model_responses"]) == 3
     assert summary["model_responses"][0]["has_tool_calls"] is False
     assert summary["model_responses"][0]["finish_reason"] == "stop"
     events = (settings.maker_place_dir / "events.jsonl").read_text()
     assert "required_tool_choice_ignored" in events
+    assert "text_only_limit_reached" in events
 
 
 def test_wake_lock_skips_second_wake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

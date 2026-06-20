@@ -61,8 +61,9 @@ Install models with `ollama pull MODEL_NAME`.
 ## Text-Only Model Responses
 
 OpenRouter requests required tool use, but the controller still logs
-`required_tool_choice_ignored` if a response has no tool calls. The wake can
-continue until context exhaustion if the model never calls a tool.
+`required_tool_choice_ignored` if a response has no tool calls. After three
+consecutive text-only responses, the controller ends the wake with
+`text_only_limit` so a bad model does not run until context exhaustion.
 
 Inspect:
 
