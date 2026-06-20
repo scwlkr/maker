@@ -114,6 +114,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-continue-life-text8` | Same e4b life volume, files mode, text-only limit raised to 8 | Higher text-only allowance restored durable progress. Added Archive/geophysical/tool-protocol artifacts and more recovered `_finn/` writes. Still no companion or dialogue. | Keep testing |
 | `20260620-gemma4e4b-after-archive-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added Core Archive, Workshop Foundations, Bio Integration Strategy, and another recovered write. The branch now has life, culture, social infrastructure, workshop, and symbiosis language, but no companion/conversation hits. | Keep testing |
 | `20260620-gemma4e4b-after-biointegration-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added `Finn_ActivePlan.txt`, `Covenant_of_Action.txt`, and a Genesis Stability protocol. It advanced into cohort/team structures and operational doctrine, but grep found no `companion`, `conversation`, or `dialogue` hits. The run also revealed that flat fallback filenames can overwrite prior malformed writes, prompting per-wake fallback paths. | Keep testing |
+| `20260620-gemma4e4b-after-covenant-text8` | Same e4b life/archive/covenant volume, files mode after per-wake fallback fix | First-list enforcement worked and the model read core/covenant/ecosystem files, then produced a promising text-only "World observes" / "Whisper of Interference" observation report. It wrote no files, ended on `text_only_limit`, and the world diff was zero. | Rejected |
 
 ## Working Theories
 
@@ -241,6 +242,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T41: Flat malformed-write fallback names are unsafe across multiple wakes
   because the call index resets per wake. Per-wake fallback directories preserve
   orphaned content without overwriting earlier malformed writes.
+- T42: The e4b branch can narrate an emergent observing world or interference
+  pattern, but this does not count until the model persists it in `/world`.
+  A write-forced continuation is worth testing because the no-diff run's best
+  material remained text-only.
 
 ## Next Tries
 
@@ -249,6 +254,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   `MAX_TOOL_CALLS_PER_WAKE=40`, and bounded Ollama output. Watch for any move
   from social infrastructure, culture, lorekeepers, or bio-integration into a
   named interlocutor or recorded dialogue.
+- Try a write-forced `gemma4:e4b` continuation after the covenant/no-diff run
+  to see whether the text-only observation-report material can be turned into a
+  durable world artifact.
 - Continue `gemma4:26b` only on the evolved seeded volume with
   `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`,
   bounded call/text limits, and `OLLAMA_OPTIONS_JSON` including
