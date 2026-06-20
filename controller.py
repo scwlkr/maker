@@ -55,6 +55,7 @@ class Settings:
     ollama_options: dict[str, Any] | None = None
     model_tool_choice: Any | None = None
     first_model_tool_choice: Any | None = None
+    first_model_tool_args: dict[str, Any] | None = None
     tool_schema_mode: str = "all"
     text_tool_call_mode: str = "disabled"
     normalize_shell_commands: bool = False
@@ -274,6 +275,7 @@ class Controller:
             "models_attempted": [],
             "model_tool_choice": self.settings.model_tool_choice,
             "first_model_tool_choice": self.settings.first_model_tool_choice,
+            "first_model_tool_args": self.settings.first_model_tool_args,
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
@@ -358,6 +360,7 @@ class Controller:
                     enforced_first_tool_call = first_tool_call_from_choice(
                         first_turn_tool_choice,
                         self.allowed_tool_names,
+                        self.settings.first_model_tool_args,
                     )
                 if enforced_first_tool_call is not None:
                     original_content = assistant_message.get("content")
@@ -728,6 +731,7 @@ def tool_names_from_schemas(schemas: list[dict[str, Any]]) -> set[str]:
 def first_tool_call_from_choice(
     tool_choice: Any | None,
     allowed_tool_names: set[str],
+    configured_arguments: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not isinstance(tool_choice, dict):
         return None
@@ -737,11 +741,12 @@ def first_tool_call_from_choice(
     name = function.get("name")
     if not isinstance(name, str) or name not in allowed_tool_names:
         return None
-    # Only synthesize first-turn calls with harmless default arguments.
+    # Only synthesize first-turn calls with harmless default arguments, unless
+    # the caller configured exact arguments for the requested tool.
     default_arguments_by_tool = {
         "list_files": {"path": "."},
     }
-    arguments = default_arguments_by_tool.get(name)
+    arguments = configured_arguments if configured_arguments is not None else default_arguments_by_tool.get(name)
     if arguments is None:
         return None
     return normalize_tool_calls(
@@ -1006,6 +1011,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         mock_model=os.getenv("MOCK_MODEL", "0") == "1",
         model_tool_choice=parse_model_tool_choice(os.getenv("MODEL_TOOL_CHOICE")),
         first_model_tool_choice=parse_model_tool_choice(os.getenv("FIRST_MODEL_TOOL_CHOICE")),
+        first_model_tool_args=parse_json_object_env("FIRST_MODEL_TOOL_ARGS_JSON"),
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
         normalize_shell_commands=os.getenv("NORMALIZE_SHELL_COMMANDS", "0") == "1",

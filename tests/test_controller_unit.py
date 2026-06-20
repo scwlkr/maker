@@ -473,6 +473,36 @@ def test_first_model_tool_choice_is_enforced_when_provider_ignores_it(
     assert "first_tool_choice_enforced" in events
 
 
+def test_first_model_tool_choice_can_use_configured_arguments(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "files"
+    settings.model_tool_choice = "required"
+    settings.first_model_tool_choice = {"type": "function", "function": {"name": "read_file"}}
+    settings.first_model_tool_args = {"path": "_finn/song.md"}
+    client = IgnoringFirstToolChoiceModelClient()
+    maker = MakerPlace(settings.maker_place_dir)
+
+    summary = Controller(settings, maker_place=maker, model_client=client).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert [call["id"] for call in summary["tool_calls"]] == [
+        "enforced-first-tool-choice-1",
+        "finish-call",
+    ]
+    assert [call["name"] for call in summary["tool_calls"]] == ["read_file", "sleep_or_finish"]
+    assert summary["tool_calls"][0]["result"]["path"] == "_finn/song.md"
+    assert "target=_finn/song.md" in FakeSandbox.commands[0]
+    events = (settings.maker_place_dir / "events.jsonl").read_text()
+    assert '"tool": "read_file"' in events
+    assert '"path": "_finn/song.md"' in events
+
+
 def test_wake_lock_skips_second_wake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
     settings = make_settings(tmp_path)
@@ -795,6 +825,15 @@ def test_settings_parse_list_files_preview_chars(monkeypatch: pytest.MonkeyPatch
     settings = controller.settings_from_env_file(tmp_path)
 
     assert settings.list_files_preview_chars == 700
+
+
+def test_settings_parse_first_model_tool_args(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("FIRST_MODEL_TOOL_ARGS_JSON", '{"path":"_finn/song.md"}')
+    monkeypatch.setenv("MAKER_PLACE_DIR", str(tmp_path / "maker-place"))
+
+    settings = controller.settings_from_env_file(tmp_path)
+
+    assert settings.first_model_tool_args == {"path": "_finn/song.md"}
 
 
 def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:

@@ -18,7 +18,8 @@ Settings come from process environment and `.env`.
 | `MOCK_MODEL_STEPS` | built-in two-step mock | JSON steps for the mock model |
 | `MODEL_MAX_TOKENS` | empty | Optional positive `max_tokens` value for OpenRouter requests |
 | `MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice`; supports `auto`, `none`, `required`, or `function:NAME`. If `function:write_file` or `function:append_file` is ignored and the model returns text, the controller preserves that text through the requested file tool. |
-| `FIRST_MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice` override for only the first model request in a wake; supports the same values as `MODEL_TOOL_CHOICE`. If a provider ignores `function:list_files`, the controller executes a safe root `list_files` call itself. |
+| `FIRST_MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice` override for only the first model request in a wake; supports the same values as `MODEL_TOOL_CHOICE`. If a provider ignores an enforceable first tool choice, the controller executes that first tool call itself. |
+| `FIRST_MODEL_TOOL_ARGS_JSON` | empty | Optional JSON object used as arguments when the controller enforces `FIRST_MODEL_TOOL_CHOICE`; unset keeps the safe default root `list_files` behavior. |
 | `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell`; `write-only` exposes only `write_file`; `files` exposes `list_files`, `read_file`, `write_file`, and `append_file` |
 | `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object for an advertised tool; `exact-literal` also accepts Python literal objects; `fenced-json` and `fenced-literal` unwrap a whole-message code fence before parsing |
 
