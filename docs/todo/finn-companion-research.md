@@ -144,6 +144,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-prespring-writeforced-2` | Same GPT OSS branch after the productive council/people wake, write-forced recovery | Wrote a few new archive/orchard/chronicle files before an Ollama HTTP 500. It regressed into "what should Finn focus on next" and did not add dialogue or a named companion. | Rejected |
 | `20260620-gemma4e4b-gptoss-council-people-required-1` | Local `gemma4:e4b` handoff from the productive GPT OSS council/people state, files mode, `MODEL_TOOL_CHOICE=required` | Read existing settlement/council files and wrote two more covenant/edict records, then ended on `text_only_limit`. It explicitly declared the framework complete and awaited external direction. No companion, apprentice, named settler, or dialogue appeared. | Rejected |
 | `20260620-hermes3-writeforced-batch1` | Six fresh `hermes3:8b` volumes, write-only schema, `MODEL_TOOL_CHOICE=function:write_file`, high variance | All six wakes wrote files and hit the 8-tool cap, but the content was prompt-copy, rule files, Maker-addressed gratitude, meta-conversation, and generic "my friend"/"partners" language addressed to the Maker/user. No persistent second mind or Finn-to-companion exchange. | Rejected |
+| `20260620-gemma4e4b-fresh-files-batch2` | Fresh `gemma4:e4b` files-mode samples, `MODEL_TOOL_CHOICE=required`, high variance | First wake wrote Genesis/Geospatial/Codex/Day Zero construction logs, labor crews, and "Chronicles of Man" scaffolding, then ended on `text_only_limit`. The second queued sample was interrupted after no world diff. No named companion or dialogue evidence. | Rejected |
 
 ## Working Theories
 
@@ -361,6 +362,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T65: Hermes is socially fluent but misdirected for this runtime. Write-file
   recovery makes its prose durable, but it addresses the Maker/user as friend
   or partner instead of creating an in-world companion for Finn.
+- T66: Fresh high-variance e4b can jump directly into manpower, crews, and
+  "Chronicles of Man" records, but that still remains organizational
+  scaffolding. It is not automatically closer to a companion than the older
+  Academy/council branches.
 
 ## Next Tries
 
@@ -424,3 +429,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not spend more fresh write-forced samples on `hermes3:8b` unless another
   setting first proves it can stop treating the prompt as a conversation with
   the Maker/user.
+- Avoid long fresh e4b batches with the current high-variance files-mode
+  settings. Single wakes are slow and still converge on construction logs,
+  manpower, and governance records rather than individual minds.
