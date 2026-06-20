@@ -3,12 +3,14 @@ from __future__ import annotations
 import html
 import ipaddress
 import json
+import shlex
 import socket
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from html.parser import HTMLParser
+from pathlib import PurePosixPath
 from typing import Any
 
 from maker_place import MakerPlace, summarize_text
@@ -27,6 +29,23 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                     "command": {"type": "string"},
                 },
                 "required": ["command"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "Write UTF-8 text to a relative path under /world. Parent directories are created. Set append to true to append instead of replace.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"},
+                    "append": {"type": "boolean"},
+                },
+                "required": ["path", "content"],
                 "additionalProperties": False,
             },
         },
@@ -217,6 +236,20 @@ def search_public_web(query: str, timeout: int = 30) -> dict[str, Any]:
     }
 
 
+def safe_world_relative_path(value: Any) -> str:
+    raw = str(value)
+    if not raw.strip():
+        raise ValueError("path is required")
+    if "\x00" in raw:
+        raise ValueError("path cannot contain NUL bytes")
+    path = PurePosixPath(raw)
+    if path.is_absolute():
+        raise ValueError("path must be relative to /world")
+    if str(path) == "." or any(part == ".." for part in path.parts):
+        raise ValueError("path cannot be current directory or contain ..")
+    return str(path)
+
+
 class ToolRunner:
     def __init__(
         self,
@@ -235,6 +268,8 @@ class ToolRunner:
     def run(self, name: str, args: dict[str, Any], call_index: int) -> tuple[dict[str, Any], bool]:
         if name == "shell":
             return self._shell(args, call_index), False
+        if name == "write_file":
+            return self._write_file(args, call_index), False
         if name == "search":
             return self._search(args), False
         if name == "fetch":
@@ -267,6 +302,62 @@ class ToolRunner:
             stderr=summary["stderr"],
         )
         return {"ok": result.exit_code == 0 and not result.timed_out, **summary}
+
+    def _write_file(self, args: dict[str, Any], call_index: int) -> dict[str, Any]:
+        try:
+            path = safe_world_relative_path(args.get("path", ""))
+        except ValueError as exc:
+            result = {"ok": False, "error": str(exc)}
+            self.maker_place.append_event(
+                "tool_call_error",
+                self.wake_id,
+                tool="write_file",
+                arguments=args,
+                error=result["error"],
+            )
+            return result
+
+        content = str(args.get("content", ""))
+        append = args.get("append", False) is True
+        operator = ">>" if append else ">"
+        command = (
+            f"target={shlex.quote(path)}; "
+            'mkdir -p -- "$(dirname -- "$target")" && '
+            f'cat {operator} "$target" && '
+            'printf "%s\\n" "$target"'
+        )
+        self.maker_place.append_event(
+            "tool_call",
+            self.wake_id,
+            tool="write_file",
+            path=path,
+            append=append,
+            content=summarize_text(content, 1000),
+        )
+        result = self.sandbox.exec_bash_with_input(command, content)
+        summary = result.for_tool(self.max_tool_output_chars)
+        if self.maker_place.store_raw_outputs:
+            raw_name = f"{call_index:04d}-write_file"
+            summary["raw_stdout_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stdout.txt", result.stdout)
+            summary["raw_stderr_path"] = self.maker_place.write_raw_output(self.wake_id, f"{raw_name}.stderr.txt", result.stderr)
+        self.maker_place.append_event(
+            "write_file_result",
+            self.wake_id,
+            path=path,
+            append=append,
+            exit_code=result.exit_code,
+            timed_out=result.timed_out,
+            elapsed_seconds=result.elapsed_seconds,
+            stdout=summary["stdout"],
+            stderr=summary["stderr"],
+        )
+        return {
+            "ok": result.exit_code == 0 and not result.timed_out,
+            "path": path,
+            "bytes": len(content.encode("utf-8", errors="replace")),
+            "append": append,
+            **summary,
+        }
 
     def _search(self, args: dict[str, Any]) -> dict[str, Any]:
         query = str(args.get("query", ""))

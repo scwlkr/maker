@@ -184,6 +184,56 @@ class Sandbox:
         except FileNotFoundError as exc:
             return CommandResult(None, "", f"docker CLI not found: {exc}", False, round(time.monotonic() - start, 3))
 
+    def exec_bash_with_input(
+        self,
+        command: str,
+        input_text: str,
+        timeout: int | None = None,
+    ) -> CommandResult:
+        timeout = timeout if timeout is not None else self.settings.shell_timeout_seconds
+        args = [
+            "docker",
+            "exec",
+            "-i",
+            "--workdir",
+            "/world",
+            "--env",
+            "HOME=/world",
+            "--env",
+            f"PATH={DEFAULT_PATH}",
+            self.container_name,
+            "bash",
+            "-lc",
+            command,
+        ]
+        start = time.monotonic()
+        try:
+            proc = subprocess.run(
+                args,
+                cwd=self.settings.repo_root,
+                input=input_text,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            return CommandResult(
+                proc.returncode,
+                proc.stdout,
+                proc.stderr,
+                False,
+                round(time.monotonic() - start, 3),
+            )
+        except subprocess.TimeoutExpired as exc:
+            stdout = exc.stdout or ""
+            stderr = exc.stderr or ""
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode("utf-8", errors="replace")
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode("utf-8", errors="replace")
+            return CommandResult(None, stdout, stderr, True, round(time.monotonic() - start, 3))
+        except FileNotFoundError as exc:
+            return CommandResult(None, "", f"docker CLI not found: {exc}", False, round(time.monotonic() - start, 3))
+
     def world_snapshot(self) -> str:
         self.ensure_image()
         self.ensure_volume()

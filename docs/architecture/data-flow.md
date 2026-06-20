@@ -3,7 +3,7 @@
 ## Wake Inputs
 
 - Settings come from process environment and `.env`.
-- The model receives the maker prompt and four native tool schemas.
+- The model receives the maker prompt and native tool schemas.
 - The sandbox receives no OpenRouter API key and no Maker Place mount.
 
 ## Model Response Loop
@@ -18,6 +18,7 @@
 ## Tool Execution
 
 - `shell`: runs `bash -lc COMMAND` inside the active Docker sandbox at `/world`.
+- `write_file`: writes UTF-8 text to a relative path under `/world`.
 - `search`: fetches DuckDuckGo HTML search results and parses titles, URLs, and
   snippets.
 - `fetch`: fetches public HTTP or HTTPS URLs after blocking local and private

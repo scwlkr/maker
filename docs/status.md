@@ -16,7 +16,8 @@ This file is the compact source of truth for current Maker behavior.
 - Wake lock behavior that skips a new wake while another wake is active.
 - Model clients for OpenRouter, Ollama, and a local mock model.
 - Model fallback attempts for the configured provider.
-- Native tool schemas for `shell`, `search`, `fetch`, and `sleep_or_finish`.
+- Native tool schemas for `shell`, `write_file`, `search`, `fetch`, and
+  `sleep_or_finish`.
 - Repeated text-only model responses end the wake after three consecutive
   responses without tool calls.
 - `fetch` blocks localhost, private, link-local, multicast, reserved,
@@ -26,8 +27,8 @@ This file is the compact source of truth for current Maker behavior.
   rendering.
 - Dashboard rendering shows runtime state, the current or latest wake, work
   accomplished, recent wakes, recent events, and colorized terminal output.
-- Pytest coverage for controller units, tool blocking, scripts, CLI behavior,
-  and Docker-backed sandbox behavior.
+- Pytest coverage for controller units, tool blocking, file-write tools,
+  scripts, CLI behavior, and Docker-backed sandbox behavior.
 
 ## Partial
 

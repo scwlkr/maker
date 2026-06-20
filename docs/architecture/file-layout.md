@@ -4,8 +4,10 @@
 
 - `controller.py`: wake orchestration, model clients, settings, loop command.
 - `maker_place.py`: event log, wake summaries, snapshots, lock handling.
-- `sandbox.py`: Docker image, container, volume, shell, snapshot, inspect, stop.
-- `tools.py`: tool schemas, shell/search/fetch execution, tool result messages.
+- `sandbox.py`: Docker image, container, volume, shell, stdin, snapshot, inspect,
+  stop.
+- `tools.py`: tool schemas, shell/write_file/search/fetch execution, tool result
+  messages.
 
 ## CLI
 
@@ -35,7 +37,7 @@
 ## Tests
 
 - `tests/test_controller_unit.py`: controller and model-client units.
-- `tests/test_tools.py`: fetch URL blocking and public fetch.
+- `tests/test_tools.py`: fetch URL blocking, public fetch, and file-write tools.
 - `tests/test_cli.py`: Go CLI behavior.
 - `tests/test_scripts.py`: shell script behavior.
 - `tests/test_docker_integration.py`: Docker-backed sandbox behavior.

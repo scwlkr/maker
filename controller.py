@@ -718,6 +718,8 @@ def tool_schemas_for_mode(mode: str) -> list[dict[str, Any]]:
         return TOOL_SCHEMAS
     if normalized in {"shell", "shell-only"}:
         return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "shell"]
+    if normalized in {"write", "write-file", "write-only"}:
+        return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "write_file"]
     raise ValueError(f"unknown TOOL_SCHEMA_MODE: {mode}")
 
 

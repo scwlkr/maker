@@ -25,6 +25,7 @@ Observed end reasons from source:
 
 - `sleep_or_finish`
 - `context_exhausted`
+- `tool_call_limit`
 - `text_only_limit`
 - `controller_stopped`
 - `controller_error`

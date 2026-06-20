@@ -33,6 +33,15 @@ class FakeSandbox:
             FakeSandbox.snapshot = "-rw-r--r-- 14 2026-01-01 00:00 ./mock-wake.txt\n"
         return CommandResult(0, "", "", False, 0.01)
 
+    def exec_bash_with_input(
+        self,
+        command: str,
+        input_text: str,
+        timeout: int | None = None,
+    ) -> CommandResult:
+        self.commands.append(command)
+        return CommandResult(0, "written.txt\n", "", False, 0.01)
+
     def stop(self) -> dict:
         return {"exists": True, "status": "running", "exit_code": 0, "mounts": []}
 
@@ -490,6 +499,14 @@ def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:
     runtime = Controller(settings, model_client=MockModelClient())
 
     assert [schema["function"]["name"] for schema in runtime.tool_schemas] == ["shell"]
+
+
+def test_tool_schema_mode_can_limit_to_write_file(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "write-only"
+    runtime = Controller(settings, model_client=MockModelClient())
+
+    assert [schema["function"]["name"] for schema in runtime.tool_schemas] == ["write_file"]
 
 
 def test_parse_model_tool_choice_function() -> None:

@@ -18,7 +18,7 @@ Settings come from process environment and `.env`.
 | `MOCK_MODEL_STEPS` | built-in two-step mock | JSON steps for the mock model |
 | `MODEL_MAX_TOKENS` | empty | Optional positive `max_tokens` value for OpenRouter requests |
 | `MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice`; supports `auto`, `none`, `required`, or `function:NAME` |
-| `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell` |
+| `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell`; `write-only` exposes only `write_file` |
 | `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object for an advertised tool |
 
 ## Wake And Tool Limits
