@@ -514,7 +514,13 @@ def promote_text_tool_call(
     allowed_tool_names: set[str] | None = None,
 ) -> dict[str, Any] | None:
     normalized_mode = mode.strip().lower().replace("_", "-")
-    if normalized_mode not in {"exact-json", "exact-json-object", "exact-literal"}:
+    if normalized_mode not in {
+        "exact-json",
+        "exact-json-object",
+        "exact-literal",
+        "fenced-json",
+        "fenced-literal",
+    }:
         return None
     if message.get("tool_calls"):
         return None
@@ -524,10 +530,14 @@ def promote_text_tool_call(
     stripped = content.strip()
     if not stripped:
         return None
+    if normalized_mode.startswith("fenced-"):
+        stripped = unwrap_single_fenced_block(stripped) or ""
+        if not stripped:
+            return None
     try:
         parsed = json.loads(stripped)
     except json.JSONDecodeError:
-        if normalized_mode != "exact-literal":
+        if normalized_mode not in {"exact-literal", "fenced-literal"}:
             return None
         try:
             parsed = ast.literal_eval(stripped)
@@ -561,6 +571,17 @@ def promote_text_tool_call(
         "tool_name": name,
         "content": summarize_text(stripped, 1000),
     }
+
+
+def unwrap_single_fenced_block(text: str) -> str | None:
+    lines = text.splitlines()
+    if len(lines) < 3:
+        return None
+    if not lines[0].startswith("```"):
+        return None
+    if lines[-1].strip() != "```":
+        return None
+    return "\n".join(lines[1:-1]).strip()
 
 
 def literal_eval_with_string_concat(source: str) -> Any:

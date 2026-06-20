@@ -572,6 +572,28 @@ def test_promote_text_tool_call_exact_literal_accepts_string_concat() -> None:
     }
 
 
+def test_promote_text_tool_call_fenced_json_accepts_whole_code_block() -> None:
+    promoted = controller.promote_text_tool_call(
+        {
+            "role": "assistant",
+            "content": (
+                "```json\n"
+                '{"name":"write_file","arguments":{"path":"README.md","content":"hi"}}\n'
+                "```"
+            ),
+        },
+        "fenced-json",
+        {"write_file"},
+    )
+
+    assert promoted is not None
+    tool_call = promoted["assistant_message"]["tool_calls"][0]
+    assert json.loads(tool_call["function"]["arguments"]) == {
+        "path": "README.md",
+        "content": "hi",
+    }
+
+
 def test_promote_text_tool_call_rejects_unadvertised_tool() -> None:
     promoted = controller.promote_text_tool_call(
         {
