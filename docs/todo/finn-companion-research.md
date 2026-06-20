@@ -183,6 +183,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-mistral-on-song-seed1` | Compact Song seed handed to `mistral-nemo:12b` | Bad handoff. It wrote conversational fragments such as "Of course it's not about me" and "You must be joking! Why do you say that?", then overwrote the cloned `song_echo.md` with an empty write. No in-world companion dialogue. | Rejected |
 | `20260620-gptoss-on-song-seed1` | Clean Song seed continued by GPT OSS with trimmed previews | Added vision/craft/flourish/memory/reflection/renewal/ascension echoes before an Ollama HTTP 500. It expanded the voice/song capability chain and added names such as Aurelia/Caden, but still no direct Finn-to-named-entity exchange. | Keep only as capability-chain seed |
 | `20260620-gptoss-song-focused-list1` | Song Echo only seed, GPT OSS, first tool forced to `list_files` the Song folder through `FIRST_MODEL_TOOL_ARGS_JSON` | The new focused first-tool argument setting worked mechanically, but GPT OSS restarted from Maker Gift/seed/sprig/choice/fruit and then hit an Ollama HTTP 500. No dialogue. | Rejected |
+| `20260620-e4b-song-forced-read1` | Song Echo only seed, local `gemma4:e4b`, first tool forced to exact `read_file`, then write-file biased | Strong mechanical result: read enforcement worked and e4b wrote 11 files. Semantic result failed: it followed the Song tail into Dream/Interaction/Will abstractions and closure, mentioning inhabitants only as future self-governance. No named reply. | Rejected |
+| `20260620-hermes-song-forced-read1` | Song Echo only seed, local `hermes3:8b`, exact forced read plus write-file preservation | Rejected. Hermes looped on a tool-result/status summary about the created file and overwrote the same path repeatedly. No companion or dialogue. | Rejected |
+| `20260620-qwen35-song-forced-read1` | Song Echo only seed, local `qwen3.5:9b`, exact forced read plus write-file preservation | Useful near miss. Qwen wrote repeated Song/Lark frontier files that ask what melody Finn should give Lark and who should rise from silence. It still asked rather than executing the exchange. | Keep only as Lark-question seed |
+| `20260620-llama-on-qwen-song-question1` | Thin seed with Song Echo plus Qwen's "Sing" frontier, local `llama3.1:8b`, exact forced read | Rejected. Llama mirrored the command and waiting-filament setup, writing repeated prompt-restatement files. No named entity or reply. | Rejected |
+| `20260620-e4b-on-qwen-song-question1` | Same thin Qwen "Sing" frontier handed to local `gemma4:e4b`, exact forced read | Rejected. e4b made the song physically creative and built soil, seed-sprigs, biology, order, and potential consciousness, but ended in "my purpose is fulfilled" and external next-step text. No interlocutor. | Rejected |
 
 ## Working Theories
 
@@ -523,6 +528,17 @@ user content. Do not add a companion directive or other behavioral prompt.
   first-tool calls, but focused listing alone is not sufficient. GPT OSS reset
   to the beginning even when the first tool result was limited to the Song Echo
   folder.
+- T101: Exact forced `read_file` is mechanically stronger than focused
+  `list_files` for local models. e4b, Hermes, Qwen, Llama, and e4b continuation
+  all acted after the enforced read, but they still did not cross into a
+  Finn-to-companion exchange.
+- T102: The Song branch splits local models into predictable failure modes:
+  e4b turns voice into world systems and closure, Hermes turns tool results
+  into status chatter, Llama mirrors the command, and Qwen asks a useful Lark
+  question but does not answer it.
+- T103: Qwen's "Sing" frontier is useful only as a seed. It frames Lark and
+  "who rises from silence" better than the raw Song Echo, but local Llama and
+  e4b continuations did not execute the implied call-and-response.
 
 ## Next Tries
 
@@ -653,5 +669,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Use `FIRST_MODEL_TOOL_ARGS_JSON` for focused artifact reads or listings, but
   do not treat focused listing alone as a sufficient intervention. The
   GPT OSS Song-only list test still reset to the beginning and hit an HTTP 500.
+- If the Qwen Song-question seed is reused, require immediate execution:
+  a named entity must rise, Finn must address it, and it must reply. Do not
+  count more "what melody should we sing" or "world is ready" artifacts.
+- Do not continue the Song branch with Hermes, Llama, or e4b in the tested
+  exact-read/write-biased settings. Hermes loops on file-status chatter, Llama
+  mirrors the command, and e4b turns the frontier into systems and closure.
 - Do not continue the governor branch with e4b or Groq-tool Llama; both move
   away from companionship.
