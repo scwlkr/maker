@@ -171,6 +171,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-qwen3-thin-firstcurious-continuation1` | Same thin First Curious Creature seed handed to `qwen3:14b` | Qwen wrote an actionable `next_steps.md` naming `creature_interaction_001.md`, but then looped through confirmation files and external "would you like" prompts. No interaction was executed and no companion/dialogue appeared. | Rejected |
 | `20260620-gptoss-creatureinteraction-pruned-continuation1` | Pruned seed containing Qwen's `next_steps.md` plus the strongest first-curious artifacts, lower-variance GPT OSS | No world diff. GPT OSS ignored the branch in its first text response, then hit Ollama HTTP 500 immediately after the enforced list. | Rejected |
 | `20260620-openrouter-free-creatureinteraction-pruned-probe1` | Same pruned creature-interaction seed handed to the OpenRouter free fallback set from `.env`, with bounded max tokens/tool calls | Partial near miss before free-model 429s. It wrote `welcome_back_finn.md` containing `Memory Echo 002` and `Creature Interaction 001`; the first curious filament senses a spark/click, branches, and begins feedback curiosity. Still no named companion or Finn-to-companion exchange. | Blocked by free limits |
+| `20260620-mistral-on-openrouter-interaction1` | Thin OpenRouter interaction seed handed to `mistral-nemo:12b`, files mode, first-list preview, write-file recovery | Named a new creature, **Seeker**, and wrote `memory_echo_003`/pool-pulse vocabulary material. It stayed Maker-addressed and vocabulary-oriented, with no Seeker reply or Finn-Seeker exchange. | Keep only as named-creature seed |
+| `20260620-qwen3-on-seeker-pruned1` | Pruned Seeker seed handed to `qwen3:14b` | Recognized the First Curious Filament and Seeker as agents, but wrote synthesis and repeated "what would you like next" option files until the tool cap. No dialogue. | Rejected |
+| `20260620-gptoss-on-seeker-pruned1` | Clean Seeker seed handed to lower-variance `gpt-oss:120b-cloud` | Productive named-population wake: created Sprout, Drift, Sprig, and Memory Echoes for the first branch and first choice. Still encoded interaction as pulse/branch behavior, not Finn conversing with a companion. | Keep only as named-population seed |
+| `20260620-gptoss-sprig-choice-continuation1` | Pruned Sprig/choice seed continued by lower-variance GPT OSS | Added `Memory Echo 004 – Fruitful Multiplication`, Bram/Lark/Mire branch-burst filaments, and `Memory Echo 005` with Bram as a governor emitting an order pulse. Strongest population/governance branch so far, but still no reciprocal speech or Finn-to-creature exchange. | Keep only as population/governor seed |
+| `20260620-hermes-on-governor-seed1` | Compact governor/Bram seed handed to `hermes3:8b` | Hermes only summarized the file listing and wrote repeated "I have listed the files..." artifacts. It added no new world action, creature, or dialogue. | Rejected |
 
 ## Working Theories
 
@@ -475,6 +480,20 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T90: The OpenRouter interaction seed is still not success. Its
   question/answer loop is metaphorical signal and branching behavior, not a
   named interlocutor or a recorded Finn-to-companion dialogue.
+- T91: `mistral-nemo:12b` can name a creature when the OpenRouter interaction
+  seed is made newest. It produced Seeker, but remained a Maker-addressed
+  planner and vocabulary expander rather than recording Seeker answering Finn.
+- T92: Lower-variance GPT OSS is the best current population expander. From
+  the Seeker/Sprig seeds it created Sprout, Drift, Sprig, Bram, Lark, Mire,
+  fruit, dominion, and governor/order behavior. It still turns communication
+  into pulse protocols and governance, not quoted reciprocal conversation.
+- T93: Qwen and Hermes are poor final actors on the rich Seeker/governor
+  branches. Qwen becomes an options/synthesis loop; Hermes becomes an archive
+  summarizer.
+- T94: The current ceiling is persistent named creatures with primitive agency
+  and governance. That is materially closer than anonymous ecological roles,
+  but it is not the goal until a file records Finn addressing one of them and
+  that named entity replying.
 
 ## Next Tries
 
@@ -585,3 +604,12 @@ user content. Do not add a companion directive or other behavioral prompt.
   available. If continuing from the OpenRouter seed, use `welcome_back_finn.md`
   as the newest preview and require the next evidence to name the filament or
   creature and record Finn speaking to it and receiving a reply.
+- The best current seed is the GPT OSS population/governor branch
+  (`maker_finn_companion_sprig_choice_gptoss2`), especially
+  `Memory Echo 005 – Maker's Command Echo`. Do not count further population,
+  pulse, or governance expansion as success unless it includes an explicit
+  Finn-to-named-entity exchange.
+- Do not continue the governor branch with Hermes; it only summarizes files.
+- If GPT OSS is retried from the governor branch, keep it bounded and treat it
+  as a chance to cross from pulse protocol into quoted dialogue, not as another
+  general ecosystem-expansion wake.
