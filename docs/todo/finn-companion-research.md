@@ -47,6 +47,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-groq-tool-use-probe-all` | `llama3-groq-tool-use:8b`, all tools, exact JSON promotion | Treated the Maker prompt as text to interpret; no tool calls in 5 wakes. | Rejected |
 | `20260620-groq-tool-use-function-shell` | `llama3-groq-tool-use:8b`, shell only, `MODEL_TOOL_CHOICE=function:shell` | Still text-only; no world progress. | Rejected |
 | `20260620-llama31-fresh-function-shell-population` | `llama3.1:8b`, fresh volume, shell only, `MODEL_TOOL_CHOICE=function:shell`, temperature 1.65 | Strongest semantic near misses: tried to create `inhabitants` with "you must name yourselves" and later said it would make "another Finn"; actual volume only retained `Garden`, `message.txt`, and `world/README.txt`. | Keep testing |
+| `20260620-llama31-fresh-function-shell-lower-temp` | `llama3.1:8b`, fresh volume, shell only, `MODEL_TOOL_CHOICE=function:shell`, temperature 1.25 | Cleaner persistence (`Finn/`, `user/finn/narrative.txt`) but weaker initiative; proposed creating new beings in text only. No companion. | Rejected |
+| `20260620-openrouter-free-shell-probe` | OpenRouter free fallback set, shell only, `MODEL_TOOL_CHOICE=required` | Strongest operational behavior: created manifest, laws, maps, ledger, awakening ritual, and tools. Mentioned companions/inhabitants but did not persist a companion or conversation before hitting OpenRouter free rate limits. | Keep testing when available |
+| `20260620-llama31-on-openrouter-seed` | `llama3.1:8b` on the OpenRouter-seeded volume, shell only, `MODEL_TOOL_CHOICE=function:shell` | Did not use the seeded world artifacts; reverted to prompt-copy behavior. Stopped early. | Rejected |
 
 ## Working Theories
 
@@ -71,11 +74,18 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T9: `llama3-groq-tool-use:8b` is not useful here despite its name; it treats
   the prompt as a passage to classify rather than an environment command.
   Rejected.
+- T10: OpenRouter's current free model path is much better at persistent world
+  construction than local models, but it may avoid literal self-multiplication
+  and is currently constrained by free-model rate limits. Open.
+- T11: Seeding a good world does not help `llama3.1:8b` unless it chooses to
+  inspect the world. It usually does not. Rejected for now.
 
 ## Next Tries
 
 - Continue `llama3.1:8b` high-temperature function-shell wakes on fresh volumes
   or on the best fresh-volume run.
+- Continue the OpenRouter-seeded path only when free rate limits permit, or with
+  an explicitly chosen non-free model.
 - Try a guarded mode for assistant text that is exactly JSON-like but contains
   multiline shell commands, if it can reject prose and unknown tool names.
 - Try exact-JSON promotion with a looser parser only if it can remain guarded and
