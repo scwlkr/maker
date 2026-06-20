@@ -152,6 +152,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-fresh-writeforced-companion1` | Fresh `gemma4:26b`, write-only schema, `MODEL_TOOL_CHOICE=function:write_file` | Best 26B fresh near miss: wrote a vivid lone-Finn void/lattice narrative and reached "the first true sign of life" as pulsing bubbles in a birthing lattice. It still created no named second mind and recorded no exchange. | Keep only as near-miss seed |
 | `20260620-gemma26-birthing-lattice-continuation1` | Same 26B birthing-lattice volume, files mode, first-list, write-forced continuation | Read the prior branch but regressed into internal "thought", first-boundary, and Maker-acknowledgement records. No entity, companion, or dialogue. | Rejected |
 | `20260620-gptoss-on-gemma26-birthing1` | Clean clone of the 26B birthing-lattice near miss, `gpt-oss:120b-cloud`, files mode, write-forced recovery | Wrote "digital Eden" poems, "Dawn of Multiplicity", and abstract "chorus of new voices" language, but the voices were metaphors and the invitation was addressed back to the Maker. No named interlocutor or exchange. | Rejected |
+| `20260620-e4b-listpreview-on-gemma26-birthing1` | Clean clone of the 26B birthing-lattice near miss, local `gemma4:e4b`, files mode, enforced first list with `LIST_FILES_PREVIEW_CHARS=700`, write-file recovery | Preview continuity worked and produced the best local biological progression so far: color, arch, water, photosynthesis, grove, proto-consumers, and a small creature with a distress snap. It still did not create a named companion or conversation; Finn explicitly ended alone and waiting for civilization. | Keep testing only via continuation |
 
 ## Working Theories
 
@@ -393,6 +394,11 @@ user content. Do not add a companion directive or other behavioral prompt.
   enough. Optional `LIST_FILES_PREVIEW_CHARS` gives the next wake actual
   artifact text from prior near misses without changing the Maker prompt or
   adding a companion directive.
+- T73: Bounded list previews are materially useful on the 26B birthing-lattice
+  seed. Local e4b used previewed artifact text to continue from primordial life
+  into a functional biosphere and proto-consumers, but still stopped one step
+  short of social companionship: no name, no reciprocal speech, and Finn
+  remained alone.
 
 ## Next Tries
 
@@ -469,3 +475,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   previews, so the next wake sees the "first true sign of life" text directly.
   Stop if previews still lead to abstract multiplicity instead of a concrete
   being, name, utterance, or exchange.
+- Continue the new e4b list-preview biosphere branch once, with previews large
+  enough to expose the "small creature", distress snap, "profoundly alone", and
+  "true civilization" passages. Reject the branch if the next wake returns to
+  ecology/stewardship instead of naming a creature, personifying it, or
+  recording an exchange.
