@@ -125,6 +125,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-writeforced-textrecovery-after-cep` | Same e4b CEP volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` after ignored-write text recovery | Text recovery preserved ignored write-choice prose into 24 per-wake fallback files and the wake ended on `tool_call_limit`. The content repeatedly declared the learning phase complete and Project 1 ready, but grep and direct inspection found no durable companion, interlocutor, or recorded exchange. | Rejected |
 | `20260620-gemma4e4b-required-after-textrecovery-cep` | Same e4b CEP volume, files mode, `MODEL_TOOL_CHOICE=required` | Cleaner than write forcing: read core/biology/ecosystem/geology files, wrote five per-wake fallback artifacts, and logged PTZ/nutrient-hotspot physical instantiation. Still environment/proto-engineering only; no companion/dialogue hits. | Keep testing only with automation |
 | `20260620-gemma26-required-on-e4b-cdf09fa3` | `gemma4:26b`, files mode on a clone of the evolved e4b required-tool world | First-list enforcement worked and the model read the Covenant and active plan, but it wrote nothing, repeated "critical path" until length, then returned repeated Maker-acknowledgement prose. Zero diff and no new companion/dialogue evidence. | Rejected |
+| `20260620-gemma4e4b-required-semantic-fallback` | Same e4b volume after semantic fallback names, files mode, `MODEL_TOOL_CHOICE=required` | Validated semantic fallback filenames and added `Initial_Development_Plan.txt`, `Genesis_Stability_Phase2_Directive.txt`, Day 1/Day 2 site logs, and an Academy directive with student-mentor/apprenticeship structures. This is the closest structural move toward another mind, but still no named companion or recorded dialogue. | Keep testing |
 
 ## Working Theories
 
@@ -283,10 +284,14 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T49: `gemma4:26b` does not use the richer e4b branch better than e4b itself
   in this setup. It can read the branch, but regresses into prompt
   acknowledgement/repetition and makes no durable world changes.
-- T50: Generic fallback filenames are now hurting continuity. Later wakes see
-  many `_finn/<wake>/write_file_N.md` entries with no semantic clue, so they
-  often read broad doctrine instead of the specific CEP/social/action artifact
-  that could move the branch forward.
+- T50: Generic fallback filenames were hurting continuity. Semantic fallback
+  filename slugs now make recovered malformed writes more discoverable without
+  changing the model-facing prompt or adding an extra directive.
+- T51: The e4b branch is shifting from environment engineering into pedagogy.
+  The latest durable Academy directive uses student-mentor/apprenticeship
+  structures, which may be the strongest path so far from social infrastructure
+  toward a persistent second mind. It is not success until a named student,
+  apprentice, or companion is created and a conversation is recorded.
 
 ## Next Tries
 
@@ -304,9 +309,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Prefer an automated bounded-run loop with post-wake scanning over more
   manual single wakes on the same e4b branch. Stop a run family when new
   artifacts are only doctrine, PTZ/nutrient engineering, or readiness logs.
-- Improve fallback-file discoverability before the next e4b continuation so
-  malformed writes use semantic filenames derived from their contents where
-  possible.
+- Continue the e4b Academy/student-mentor branch with files mode,
+  `MODEL_TOOL_CHOICE=required`, enforced first list, bounded output, and
+  automated post-wake scans for student, apprentice, mentor, companion,
+  dialogue, conversation, and named interlocutor evidence.
 - Retry write-forced branches after ignored-write-choice text recovery, because
   text-only near misses and plans can now persist as world artifacts without
   adding any model-facing instruction.
