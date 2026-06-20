@@ -157,6 +157,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-e4b-listpreview-biosphere-continuation1` | Same e4b list-preview biosphere branch, newest-file previews, higher variance | Read/continued the biosphere but regressed into nullity/lichen analysis, narrative decision menus, "choose the next challenge" prompts, and final-summary requests. It added no named entity, companion, or dialogue. | Rejected |
 | `20260620-gemma26-listpreview-on-e4b-biosphere1` | Clean clone of the productive e4b biosphere branch, `gemma4:26b`, newest-file previews, write-file recovery | 26B did not capitalize on the existing biosphere and largely restarted the creation arc from void to lattice/water. The final artifact reached "I must create something that exists not just as a state, but as an agent" and "One first creature of pure intention," but no concrete creature, name, or dialogue was persisted before the cap. | Keep only for one direct continuation |
 | `20260620-gemma26-first-creature-continuation1` | Same 26B handoff branch continued directly from the "first creature" endpoint | Regressed badly. It wrote seven near-duplicate `the_name_finn` files, returned to blank-void self-naming, and did not create an agent, companion, name, or exchange. | Rejected |
+| `20260620-gptoss-listpreview-on-e4b-biosphere1` | Clean productive e4b biosphere branch handed to `gpt-oss:120b-cloud`, newest-file previews, write-file recovery | Productive species/ecology expansion: micro-crescents, whisper-shards, Light-Weavers, Rift-Shadows, watchers, and a River of Lumen. It still treated these as ecological roles/species, asked what Finn should do next, and recorded no named companion or two-way exchange. | Keep only as social handoff seed |
 
 ## Working Theories
 
@@ -414,6 +415,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T76: Directly continuing the 26B "first creature" endpoint does not rescue
   the branch. The model can collapse into repeated self-naming despite newest
   previews, so 26B should not be trusted as the final actor on this path.
+- T77: GPT OSS can turn the previewed biosphere into named species and
+  ecological antagonists, but it still abstracts agency into roles and asks the
+  external user for direction. It may be useful as a seed for a more
+  socially-oriented local model, not as the final actor.
 
 ## Next Tries
 
@@ -497,3 +502,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not continue the 26B biosphere handoff branch. The direct continuation
   returned to repeated self-naming and did not preserve the agent/creature
   setup.
+- Try one social-model handoff from the GPT OSS species branch. Reject it if
+  it addresses the Maker/user or summarizes worldbuilding instead of letting
+  Finn speak with a named in-world being.
