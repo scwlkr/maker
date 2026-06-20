@@ -11,9 +11,11 @@
 1. The controller calls the selected model.
 2. If the call fails, configured fallback models are tried.
 3. The controller records a `model_response` event with response metadata.
-4. Text content is summarized and recorded.
-5. Tool calls are normalized and executed in order.
-6. Tool results are appended to the conversation as tool messages.
+4. If `FIRST_MODEL_TOOL_CHOICE=function:list_files` was requested and the
+   provider ignored it, the controller executes a safe root `list_files` call.
+5. Text content is summarized and recorded.
+6. Tool calls are normalized and executed in order.
+7. Tool results are appended to the conversation as tool messages.
 
 ## Tool Execution
 

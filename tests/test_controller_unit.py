@@ -194,6 +194,56 @@ class RecordingToolChoiceModelClient:
         }
 
 
+class IgnoringFirstToolChoiceModelClient:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.tool_choices: list[object | None] = []
+
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
+        self.calls += 1
+        self.tool_choices.append(tool_choice)
+        if self.calls == 1:
+            return {
+                "id": "ignoring-first-1",
+                "model": model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", "content": "I will inspect the world."},
+                    }
+                ],
+            }
+        return {
+            "id": "ignoring-first-2",
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "finish-call",
+                                "type": "function",
+                                "function": {"name": "sleep_or_finish", "arguments": "{}"},
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+
+
 def make_settings(tmp_path: Path) -> Settings:
     return Settings(
         model_provider="openrouter",
@@ -325,6 +375,37 @@ def test_first_model_tool_choice_applies_only_to_first_request(
         None,
     ]
     assert [call["name"] for call in summary["tool_calls"]] == ["list_files", "sleep_or_finish"]
+
+
+def test_first_model_tool_choice_is_enforced_when_provider_ignores_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "files"
+    settings.model_tool_choice = "required"
+    settings.first_model_tool_choice = {"type": "function", "function": {"name": "list_files"}}
+    client = IgnoringFirstToolChoiceModelClient()
+    maker = MakerPlace(settings.maker_place_dir)
+
+    summary = Controller(settings, maker_place=maker, model_client=client).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert client.tool_choices == [
+        {"type": "function", "function": {"name": "list_files"}},
+        None,
+    ]
+    assert [call["id"] for call in summary["tool_calls"]] == [
+        "enforced-first-tool-choice-1",
+        "finish-call",
+    ]
+    assert [call["name"] for call in summary["tool_calls"]] == ["list_files", "sleep_or_finish"]
+    assert summary["model_responses"][0]["has_tool_calls"] is False
+    events = (settings.maker_place_dir / "events.jsonl").read_text()
+    assert "first_tool_choice_enforced" in events
 
 
 def test_wake_lock_skips_second_wake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

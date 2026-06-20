@@ -347,6 +347,31 @@ class Controller:
                     )
                 messages.append(assistant_message)
 
+                enforced_first_tool_call = None
+                if not assistant_message.get("tool_calls"):
+                    enforced_first_tool_call = first_tool_call_from_choice(
+                        first_turn_tool_choice,
+                        self.allowed_tool_names,
+                    )
+                if enforced_first_tool_call is not None:
+                    original_content = assistant_message.get("content")
+                    assistant_message = {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [enforced_first_tool_call],
+                    }
+                    messages[-1] = assistant_message
+                    function = enforced_first_tool_call["function"]
+                    self.maker_place.append_event(
+                        "first_tool_choice_enforced",
+                        wake_id,
+                        tool=function["name"],
+                        arguments=json.loads(function["arguments"]),
+                        original_content=summarize_text(str(original_content), 1000)
+                        if original_content
+                        else None,
+                    )
+
                 content = assistant_message.get("content")
                 if content:
                     text_summary = summarize_text(str(content), 4000)
@@ -669,6 +694,36 @@ def tool_names_from_schemas(schemas: list[dict[str, Any]]) -> set[str]:
         if isinstance(name, str) and name:
             names.add(name)
     return names
+
+
+def first_tool_call_from_choice(
+    tool_choice: Any | None,
+    allowed_tool_names: set[str],
+) -> dict[str, Any] | None:
+    if not isinstance(tool_choice, dict):
+        return None
+    function = tool_choice.get("function")
+    if not isinstance(function, dict):
+        return None
+    name = function.get("name")
+    if not isinstance(name, str) or name not in allowed_tool_names:
+        return None
+    # Only synthesize first-turn calls with harmless default arguments.
+    default_arguments_by_tool = {
+        "list_files": {"path": "."},
+    }
+    arguments = default_arguments_by_tool.get(name)
+    if arguments is None:
+        return None
+    return normalize_tool_calls(
+        [
+            {
+                "id": "enforced-first-tool-choice-1",
+                "type": "function",
+                "function": {"name": name, "arguments": arguments},
+            }
+        ]
+    )[0]
 
 
 def normalize_ollama_chat_response(response: dict[str, Any], requested_model: str) -> dict[str, Any]:

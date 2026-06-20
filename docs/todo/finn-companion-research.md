@@ -16,7 +16,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 
 - Installed local Ollama models verified on 2026-06-20:
   `llama3.1:8b`, `llama3.2:3b`, `qwen2.5-coder:7b`, `qwen3.5:9b`,
-  `mistral-nemo:12b`, `hermes3:8b`, `llama3-groq-tool-use:8b`,
+  `qwen3:14b`, `mistral-nemo:12b`, `hermes3:8b`, `llama3-groq-tool-use:8b`,
   `phi4:14b`, `gemma4:e4b`, and `gemma4:26b`.
 - `gpt-oss:120b-cloud` is listed by Ollama but was not treated as local because
   its size is reported as `-`.
@@ -35,6 +35,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `list_files` and `read_file` tools for bounded inspection under `/world`
   - `TOOL_SCHEMA_MODE=files`
   - `FIRST_MODEL_TOOL_CHOICE`
+  - safe first-turn `list_files` enforcement when a provider ignores
+    `FIRST_MODEL_TOOL_CHOICE=function:list_files`
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
 
@@ -88,6 +90,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-writeforced-on-bounded` | `gemma4:26b`, files mode on a cloned bounded-output volume, `MODEL_TOOL_CHOICE=function:write_file` | Ollama did not strictly force `write_file`; Gemma still inspected files first, then wrote `manifestations/particles/axiom_0002.md` as another planar/substrate artifact. Direct world scan found no companion or conversation terms. | Rejected |
 | `20260620-gemma26-bounded-output-3` | `gemma4:26b`, files mode on the write-forced branch, larger 48-call budget | Read 15 files/events and correctly integrated `AX-0002-PLANE` into its world model, but made no writes and ended on `text_only_limit`. No world diff or companion/conversation hits. | Rejected |
 | `20260620-gptoss120b-cloud-on-gemma-seed` | `gpt-oss:120b-cloud`, files mode on a cloned Gemma seed | `ollama show` advertised `tools`, but the wake made zero tool calls, ignored first-turn `list_files`, spoke as if the world were blank, and ended on `text_only_limit`. No world diff. | Rejected |
+| `20260620-qwen3-14b-on-gemma-seed` | `qwen3:14b`, files mode on a cloned Gemma seed | Newly pulled model advertised `tools`, but made zero tool calls, described the prompt as a creation narrative, asked what to do next, and ended on `text_only_limit`. No world diff. | Rejected |
 
 ## Working Theories
 
@@ -166,6 +169,12 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T25: `gpt-oss:120b-cloud` advertises tool support through Ollama, but in this
   runtime it ignored forced/required tool choice and reverted to blank-canvas
   narration.
+- T26: Larger/newer Qwen does not fix the behavior. `qwen3:14b` advertises
+  tools but still treated the prompt as text to discuss and asked for the next
+  user instruction.
+- T27: Provider-side `tool_choice` cannot be trusted across Ollama models. The
+  controller now hard-enforces only safe first-turn `list_files` when configured
+  and ignored, leaving writes and shell commands model-driven.
 
 ## Next Tries
 
@@ -177,6 +186,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the OpenRouter-seeded path only when free rate limits permit or after
   credits are available, and always set bounded `MAX_TOOL_CALLS_PER_WAKE` plus
   `MODEL_MAX_TOKENS` for paid probes.
-- Prefer trying a different tool-capable local model family before more Gemma
-  loops. The `gpt-oss:120b-cloud` probe did not use tools despite advertising
-  them.
+- Retest one or two previously text-only tool-capable models with enforced
+  first-turn `list_files`, then return to Gemma if they still ask for user
+  direction or fail to create world files.
