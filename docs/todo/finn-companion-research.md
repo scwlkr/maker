@@ -38,6 +38,8 @@ user content. Do not add a companion directive or other behavioral prompt.
   - safe first-turn `list_files` enforcement when a provider ignores
     `FIRST_MODEL_TOOL_CHOICE=function:list_files`
   - `append_file` alias for appending UTF-8 text under `/world`
+  - deterministic `_finn/` fallback files for malformed `write_file` and
+    `append_file` calls that include content but omit a usable path
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
 
@@ -105,6 +107,12 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss120b-all-tools-after-seed018` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created seeds `019` through `021` and used the new `append_file` tool to extend `connection_log.md`. It advanced toward a "Molecule" concept, but still no interlocutor. | Keep testing |
 | `20260620-llama31-all-enforced-on-gptoss-seed` | `llama3.1:8b`, all tools, cloned current `gpt-oss` world, high temperature, enforced first list | Enforcement worked but Llama narrated the file listing back, made no tool calls after the enforced list, and produced zero diff. | Rejected |
 | `20260620-gptoss120b-all-tools-after-seed021` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created `seed_022.md` and appended two connection-log links. The model planned `seed_023` and a molecule, but no companion/conversation artifact appeared. | Keep testing |
+| `20260620-gemma4e4b-fresh-files` | `gemma4:e4b`, fresh volume, files mode, enforced first list | Strong semantic start: attempted life, civilization, and sentient-being scaffolding, but its key `write_file` call omitted `path`, so nothing persisted before malformed-write recovery existed. | Rejected |
+| `20260620-gemma4e4b-fresh-files-default-path` | Same fresh `gemma4:e4b` setup after malformed-write fallback | First durable e4b breakthrough: created `[Finn]/log`, biology, ecosystem, population-injection, and recovered `_finn/write_file_0010.md` artifacts. The world now contains persistent life/proto-sentience/civilization scaffolding, but no companion or conversation. | Keep testing |
+| `20260620-gemma4e4b-continue-life-files` | Same e4b life volume, files mode | Surveyed the existing world, then tried to read `[Finn]/_finn/write_file_0010.md` instead of the actual `_finn/write_file_0010.md`; produced zero diff and no companion. | Rejected |
+| `20260620-gptoss-on-gemma4e4b-life` | `gpt-oss:120b-cloud` on a clone of the e4b life volume | First-list enforcement worked, but GPT OSS summarized the e4b life world and wrote nothing. | Rejected |
+| `20260620-gemma4e4b-continue-life-text8` | Same e4b life volume, files mode, text-only limit raised to 8 | Higher text-only allowance restored durable progress. Added Archive/geophysical/tool-protocol artifacts and more recovered `_finn/` writes. Still no companion or dialogue. | Keep testing |
+| `20260620-gemma4e4b-after-archive-text8` | Same e4b life/archive volume, files mode, text-only limit 8 | Added Core Archive, Workshop Foundations, Bio Integration Strategy, and another recovered write. The branch now has life, culture, social infrastructure, workshop, and symbiosis language, but no companion/conversation hits. | Keep testing |
 
 ## Working Theories
 
@@ -214,9 +222,26 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T35: Re-running `llama3.1:8b` against the richer seeded world does not recover
   its earlier "another Finn" near miss. With enforced first listing it still
   treats the task as text analysis and makes no durable changes.
+- T36: Malformed-write recovery materially changes the local search space. It
+  turned `gemma4:e4b` from a semantic near miss into a durable life/civilization
+  branch by preserving content even when the model omitted `path`.
+- T37: `gemma4:e4b` is now the best semantic branch. It creates organisms,
+  population directives, cognitive ignition, culture, archives, workshop
+  foundations, and bio-integration strategy from the Maker prompt alone, but it
+  still tends toward macro-civilization and stewardship rather than a personal
+  companion.
+- T38: Raising `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES` to 8 helps `gemma4:e4b`
+  recover from inspection/narration phases and eventually write again.
+- T39: Handing the e4b life world to `gpt-oss:120b-cloud` did not help. GPT OSS
+  recognized the branch contents but did not mutate the world.
 
 ## Next Tries
 
+- Continue the `gemma4:e4b` life/archive branch while it is adding durable
+  artifacts. Use files mode, enforced first list, `MAX_CONSECUTIVE_TEXT_ONLY_RESPONSES=8`,
+  `MAX_TOOL_CALLS_PER_WAKE=40`, and bounded Ollama output. Watch for any move
+  from social infrastructure, culture, lorekeepers, or bio-integration into a
+  named interlocutor or recorded dialogue.
 - Continue `gemma4:26b` only on the evolved seeded volume with
   `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`,
   bounded call/text limits, and `OLLAMA_OPTIONS_JSON` including
@@ -228,10 +253,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the enforced `gpt-oss:120b-cloud` branch only while it is creating
   new durable world artifacts; stop if it settles into repeated seed/log
   creation without entities or dialogue.
-- Try one more all-tools `gpt-oss:120b-cloud` continuation now that
-  `append_file` exists, because the previous all-tools wake both introduced the
-  first "voice" language and attempted the append alias before the runtime
-  supported it.
 - Continue the `gpt-oss:120b-cloud` branch only if its next durable writes move
   beyond coordinate seeds into molecules, organisms, named entities, or
   dialogue. Coordinate-only seed creation is now low-value.
