@@ -41,6 +41,8 @@ maker probe-model --provider ollama --model llama3.1:8b
 maker count-model-responses --wake current
 maker evaluate --wake current --last-responses 10
 maker dashboard --interval 10 --events 8 --last-responses 10
+maker interface --output maker-place/interface/index.html
+maker interface --serve --publish-world
 ```
 
 `start` starts the controller loop in the background and writes
@@ -52,6 +54,29 @@ the recorded lock pid is no longer running.
 `dashboard` renders runtime state, the current or latest wake, work accomplished,
 recent wakes, and recent events. It also accepts `--once`, `--no-clear`, and
 `--color auto|always|never`.
+
+`interface` renders a detailed HTML reading room for Finn's runtime state,
+thinking trace, thoughts, creations, inferred friends and creatures, field
+notes, recent wakes, recent events, and world entries. By default it writes HTML
+to stdout, so it can use the global `--output` flag. It also accepts:
+
+```bash
+maker interface --output maker-place/interface/index.html
+maker interface --serve --host 127.0.0.1 --port 8765
+maker interface --serve --detach --publish-world
+maker interface --start-loop
+maker interface --stop
+maker interface --publish-world --world-note _maker/interface-status.md
+```
+
+`--serve` starts a local read-only HTML server with a `/data.json` snapshot.
+`--detach` runs that server in the background and records
+`maker-place/interface/server.pid` plus `maker-place/interface/server.log`.
+`--stop` stops a detached interface server.
+`--publish-world` writes a concise Markdown status file inside `/world` so Finn
+can inspect the interface state during local model wakes.
+`--start-loop` publishes that world note and starts the controller with local
+Ollama settings that force each wake to read the note before writing feedback.
 
 ## Input And Output Routing
 

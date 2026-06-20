@@ -11,7 +11,9 @@ from pathlib import Path
 def write_cli_fixture(root: Path) -> tuple[Path, str]:
     maker = root / "maker-place"
     wakes = maker / "wakes"
+    field_notes = maker / "field-notes"
     wakes.mkdir(parents=True)
+    field_notes.mkdir(parents=True)
     wake_id = "20260101T000000Z-cli"
     events = [
         {"time": "2026-01-01T00:00:00Z", "type": "wake_start", "wake_id": wake_id, "model": "mock/free:free"},
@@ -73,7 +75,26 @@ def write_cli_fixture(root: Path) -> tuple[Path, str]:
             }
         )
     )
+    (field_notes / f"{wake_id}.md").write_text(
+        "# Field Note: 20260101T000000Z-cli\n\n"
+        "A companion creature named Lumen appeared in the garden record.\n"
+    )
     return maker, wake_id
+
+
+def fake_docker_env(tmp_path: Path) -> dict[str, str]:
+    fake_bin = tmp_path / "fake-docker-bin"
+    fake_bin.mkdir()
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [ \"$1\" = \"run\" ]; then\n"
+        "  printf './garden\\n./friends/lumen.md\\n./creatures/spark.txt\\n'\n"
+        "fi\n"
+        "exit 0\n"
+    )
+    fake_docker.chmod(0o755)
+    return {"PATH": f"{fake_bin}:{os.environ['PATH']}"}
 
 
 def run_maker(
@@ -178,6 +199,40 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
     written = out_path.read_text()
     assert "Maker Dashboard" in written
     assert "wake_end" in written
+
+
+def test_go_cli_interface_html_json_output_and_world_publish(repo_root: Path, tmp_path: Path) -> None:
+    maker, wake_id = write_cli_fixture(tmp_path)
+    base = ["--maker-place", str(maker)]
+    env = fake_docker_env(tmp_path)
+
+    interface = run_maker(repo_root, [*base, "interface", "--refresh", "0", "--world-depth", "2"], env=env)
+    assert "<title>Finn Interface</title>" in interface.stdout
+    assert "Thinking" in interface.stdout
+    assert "Creations" in interface.stdout
+    assert "Friends" in interface.stdout
+    assert "Creatures" in interface.stdout
+    assert wake_id in interface.stdout
+    assert "./friends/lumen.md" in interface.stdout
+    assert "./creatures/spark.txt" in interface.stdout
+
+    snapshot = run_maker(repo_root, [*base, "--json", "interface", "--world-depth", "2"], env=env)
+    payload = json.loads(snapshot.stdout)
+    assert payload["latest_wake"]["id"] == wake_id
+    assert payload["totals"]["wakes"] == 1
+    assert payload["world"]["count"] == 3
+    assert payload["friends"]
+    assert payload["creatures"]
+
+    out_path = tmp_path / "interface" / "index.html"
+    written = run_maker(
+        repo_root,
+        [*base, "interface", "--output", str(out_path), "--publish-world"],
+        env=env,
+    )
+    assert f"interface written: {out_path}" in written.stdout
+    assert "world snapshot published: /world/_maker/interface-status.md" in written.stdout
+    assert "Finn Interface" in out_path.read_text()
 
 
 def test_go_cli_start_and_stop_commands(repo_root: Path, tmp_path: Path) -> None:

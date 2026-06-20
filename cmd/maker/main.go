@@ -83,12 +83,15 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) err
 
 	cmd := rest[0]
 	cmdArgs := rest[1:]
-	if cmd == "dashboard" || cmd == "watch" {
+	if cmd == "dashboard" || cmd == "watch" || cmd == "interface" {
 		out, closeOut, err := openOutputWriter(cfg.OutputPath, stdout)
 		if err != nil {
 			return err
 		}
 		defer closeOut()
+		if cmd == "interface" {
+			return cmdInterface(cfg, cmdArgs, stdin, out)
+		}
 		return cmdDashboard(cfg, cmdArgs, stdin, out)
 	}
 
@@ -119,6 +122,8 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) err
 		err = cmdEvaluate(cfg, cmdArgs, stdin, &out)
 	case "dashboard", "watch":
 		err = cmdDashboard(cfg, cmdArgs, stdin, &out)
+	case "interface":
+		err = cmdInterface(cfg, cmdArgs, stdin, &out)
 	case "help", "-h", "--help":
 		printUsage(&out)
 	default:
@@ -154,6 +159,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  count-model-responses [--wake current|last|WAKE_ID]")
 	fmt.Fprintln(w, "  evaluate [--wake current|last|WAKE_ID] [--last-responses 10]")
 	fmt.Fprintln(w, "  dashboard [--interval 10] [--events 8] [--last-responses 10] [--color auto|always|never]")
+	fmt.Fprintln(w, "  interface [--serve] [--output PATH] [--publish-world]")
 }
 
 func cmdStart(cfg Config, args []string, out io.Writer) error {

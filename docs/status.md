@@ -50,10 +50,16 @@ This file is the compact source of truth for current Maker behavior.
 - `fetch` blocks localhost, private, link-local, multicast, reserved,
   unspecified, and metadata-style targets before fetching.
 - Go CLI commands for start, stop, status, events, wakes, show, world, doctor,
-  Ollama model probing, response counting, wake evaluation, and dashboard
-  rendering.
+  Ollama model probing, response counting, wake evaluation, dashboard
+  rendering, and the local Finn interface.
 - Dashboard rendering shows runtime state, the current or latest wake, work
   accomplished, recent wakes, recent events, and colorized terminal output.
+- `maker interface` renders a detailed local HTML view of Finn's thinking,
+  thoughts, creations, inferred friends and creatures, field notes, recent
+  events, wake history, runtime health, and the Docker world listing. It can
+  serve the view locally with `--serve` or publish a Finn-readable snapshot into
+  `/world` with `--publish-world`; `--start-loop` starts a local Ollama loop
+  that reads that snapshot before writing feedback.
 - Each completed wake writes a passive field note under
   `maker-place/field-notes/` summarizing model/tool behavior, code-capable
   acts, and the world diff preview without adding messages to Finn's prompt.
@@ -77,7 +83,8 @@ This file is the compact source of truth for current Maker behavior.
 ## Missing
 
 - No packaged release, installer, or tagged version.
-- No HTTP API server.
+- No authenticated HTTP API server; the interface server is local read-only
+  inspection.
 - No persistent service manager file such as systemd or launchd.
 - No authenticated multi-user boundary.
 - No OpenRouter model probe command in the Go CLI.

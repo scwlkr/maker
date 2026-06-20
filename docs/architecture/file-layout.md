@@ -11,8 +11,9 @@
 
 ## CLI
 
-- `cmd/maker/main.go`: Go CLI implementation, including start/stop,
-  inspection, evaluation, and dashboard commands.
+- `cmd/maker/main.go`: Go CLI dispatch and shared command helpers.
+- `cmd/maker/interface.go`: local HTML Finn interface rendering, optional
+  interface server, and Finn-readable `/world` status publishing.
 - `go.mod`: Go module declaration.
 
 ## Operations

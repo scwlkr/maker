@@ -21,7 +21,7 @@ For any non-trivial Maker task, load:
 | Observe Finn world-code experiments | [Data flow](architecture/data-flow.md), [Workspace model](concepts/workspace.md), [Finn matrix observation](todo/finn-matrix-observation.md) |
 | Change model settings | [Configuration model](concepts/configuration.md), [Environment](reference/env.md), [Needs verification](todo/needs-verification.md) |
 | Change sandbox behavior | [Architecture overview](architecture/overview.md), [Lifecycle](architecture/lifecycle.md), [Environment](reference/env.md) |
-| Change CLI behavior | [CLI](reference/cli.md), [File layout](architecture/file-layout.md), `cmd/maker/main.go`, `tests/test_cli.py` |
+| Change CLI behavior | [CLI](reference/cli.md), [File layout](architecture/file-layout.md), `cmd/maker/main.go`, `cmd/maker/interface.go`, `tests/test_cli.py` |
 | Change controller behavior | [Lifecycle](architecture/lifecycle.md), [Data flow](architecture/data-flow.md), `controller.py`, `tests/test_controller_unit.py` |
 | Change docs | [Docs agent instructions](AGENTS.md), [Docs todo](todo/docs-todo.md), [Docs structure decision](decisions/0001-docs-structure.md) |
 

@@ -102,6 +102,9 @@ maker doctor
 maker evaluate --wake current --last-responses 10
 maker dashboard
 maker dashboard --color always
+maker interface --output maker-place/interface/index.html
+maker interface --serve --detach --publish-world
+maker interface --start-loop
 ```
 
 Install a local binary into `~/.local/bin`:
@@ -113,6 +116,14 @@ maker dashboard
 
 See [CLI reference](docs/reference/cli.md) for global flags, command flags, JSON
 output, and file/stdin routing.
+
+`maker interface` is the richer local view. It shows Finn's runtime state,
+thinking trace, thoughts, creations, inferred friends and creatures, field
+notes, recent wakes, event stream, and world entries. `--serve --detach` starts
+a local read-only HTML server in the background, and `--publish-world` mirrors a
+concise Markdown status file into `/world/_maker/interface-status.md` so Finn
+can inspect it during local wakes. `--start-loop` starts Finn with local Ollama
+settings that force each wake to read that status file before writing feedback.
 
 ## Configure Models
 
