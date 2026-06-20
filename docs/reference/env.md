@@ -18,7 +18,7 @@ Settings come from process environment and `.env`.
 | `MOCK_MODEL_STEPS` | built-in two-step mock | JSON steps for the mock model |
 | `MODEL_TOOL_CHOICE` | empty | Optional provider `tool_choice`; supports `auto`, `none`, `required`, or `function:NAME` |
 | `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell` |
-| `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object |
+| `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object for an advertised tool |
 
 ## Wake And Tool Limits
 

@@ -205,6 +205,7 @@ class Controller:
                 settings.model_tool_choice if settings.model_tool_choice is not None else "required",
             )
         self.tool_schemas = tool_schemas_for_mode(settings.tool_schema_mode)
+        self.allowed_tool_names = tool_names_from_schemas(self.tool_schemas)
         self._stop_requested = False
 
     def request_stop(self, signum: int | None = None, frame: object | None = None) -> None:
@@ -280,6 +281,7 @@ class Controller:
                 promoted_tool_call = promote_text_tool_call(
                     assistant_message,
                     self.settings.text_tool_call_mode,
+                    self.allowed_tool_names,
                 )
                 if promoted_tool_call is not None:
                     assistant_message = promoted_tool_call["assistant_message"]
@@ -473,7 +475,11 @@ def normalize_tool_calls(tool_calls: list[Any]) -> list[dict[str, Any]]:
     return normalized
 
 
-def promote_text_tool_call(message: dict[str, Any], mode: str) -> dict[str, Any] | None:
+def promote_text_tool_call(
+    message: dict[str, Any],
+    mode: str,
+    allowed_tool_names: set[str] | None = None,
+) -> dict[str, Any] | None:
     if mode.strip().lower().replace("_", "-") not in {"exact-json", "exact-json-object"}:
         return None
     if message.get("tool_calls"):
@@ -494,6 +500,8 @@ def promote_text_tool_call(message: dict[str, Any], mode: str) -> dict[str, Any]
     name = function.get("name") if isinstance(function, dict) else None
     if not isinstance(name, str) or not name:
         return None
+    if allowed_tool_names is not None and name not in allowed_tool_names:
+        return None
     arguments = function.get("arguments", function.get("parameters", {})) if isinstance(function, dict) else {}
     tool_call = normalize_tool_calls(
         [
@@ -509,6 +517,18 @@ def promote_text_tool_call(message: dict[str, Any], mode: str) -> dict[str, Any]
         "tool_name": name,
         "content": summarize_text(stripped, 1000),
     }
+
+
+def tool_names_from_schemas(schemas: list[dict[str, Any]]) -> set[str]:
+    names: set[str] = set()
+    for schema in schemas:
+        function = schema.get("function", {})
+        if not isinstance(function, dict):
+            continue
+        name = function.get("name")
+        if isinstance(name, str) and name:
+            names.add(name)
+    return names
 
 
 def normalize_ollama_chat_response(response: dict[str, Any], requested_model: str) -> dict[str, Any]:

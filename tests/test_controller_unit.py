@@ -445,3 +445,16 @@ def test_promote_text_tool_call_accepts_parameters_key() -> None:
     assert promoted is not None
     tool_call = promoted["assistant_message"]["tool_calls"][0]
     assert json.loads(tool_call["function"]["arguments"]) == {"command": "true"}
+
+
+def test_promote_text_tool_call_rejects_unadvertised_tool() -> None:
+    promoted = controller.promote_text_tool_call(
+        {
+            "role": "assistant",
+            "content": '{"name":"tell_finn_the_command","parameters":{"command":"true"}}',
+        },
+        "exact-json",
+        {"shell"},
+    )
+
+    assert promoted is None
