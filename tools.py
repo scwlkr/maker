@@ -237,11 +237,15 @@ def search_public_web(query: str, timeout: int = 30) -> dict[str, Any]:
 
 
 def safe_world_relative_path(value: Any) -> str:
-    raw = str(value)
-    if not raw.strip():
+    raw = str(value).strip()
+    if not raw:
         raise ValueError("path is required")
     if "\x00" in raw:
         raise ValueError("path cannot contain NUL bytes")
+    if raw.startswith("/world/"):
+        raw = raw.removeprefix("/world/")
+    elif raw == "/world":
+        raise ValueError("path must name a file under /world")
     path = PurePosixPath(raw)
     if path.is_absolute():
         raise ValueError("path must be relative to /world")

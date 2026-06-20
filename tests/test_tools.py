@@ -54,8 +54,11 @@ def test_public_fetch_works() -> None:
 
 def test_safe_world_relative_path_rejects_unsafe_paths() -> None:
     assert safe_world_relative_path("people/ada.md") == "people/ada.md"
+    assert safe_world_relative_path("/world/people/ada.md") == "people/ada.md"
     with pytest.raises(ValueError):
-        safe_world_relative_path("/world/people/ada.md")
+        safe_world_relative_path("/tmp/people/ada.md")
+    with pytest.raises(ValueError):
+        safe_world_relative_path("/world")
     with pytest.raises(ValueError):
         safe_world_relative_path("../ada.md")
     with pytest.raises(ValueError):
