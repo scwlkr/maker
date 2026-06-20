@@ -687,6 +687,12 @@ func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses
 			durationText(str(wake["start_time"]), str(wake["end_time"])),
 			style.paint(assessmentColor(counts, worldChanged, lenArray(wake["errors"]), len(lock) > 0), dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), len(lock) > 0)),
 		)
+	} else if len(lock) > 0 && wakeID != "" {
+		fmt.Fprintf(out, "Active wake %s  %s  %s\n",
+			style.accent(wakeID),
+			durationText(str(lock["started_at"]), ""),
+			style.paint(activeAssessmentColor(counts), activeWakeAssessment(counts)),
+		)
 	}
 	fmt.Fprintln(out)
 
@@ -713,7 +719,11 @@ func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses
 
 	printSection(out, style, "CURRENT WAKE")
 	if wakeErr != nil {
-		printKeyValue(out, style, "wake", "unavailable: "+wakeErr.Error())
+		if len(lock) > 0 && wakeID != "" {
+			printDashboardActiveWake(out, style, wakeID, lock, counts, len(recentResponses), events)
+		} else {
+			printKeyValue(out, style, "wake", "unavailable: "+wakeErr.Error())
+		}
 	} else {
 		printDashboardWake(out, style, wake, counts, worldChanged, len(recentResponses), len(lock) > 0)
 	}
@@ -721,7 +731,11 @@ func renderDashboard(cfg Config, stdinData []byte, eventCount int, lastResponses
 
 	printSection(out, style, "WORK ACCOMPLISHED")
 	if wakeErr != nil {
-		fmt.Fprintln(out, "No wake summary is available yet.")
+		if len(lock) > 0 && wakeID != "" {
+			printDashboardActiveWork(out, style, wakeID, counts, events)
+		} else {
+			fmt.Fprintln(out, "No wake summary is available yet.")
+		}
 	} else {
 		printDashboardWork(out, style, wake, counts, worldChanged)
 	}
@@ -883,6 +897,28 @@ func printDashboardWake(out io.Writer, style dashboardStyle, wake map[string]any
 	printKeyValue(out, style, "recent eval", fmt.Sprintf("%d response-sized events considered", recentResponses))
 }
 
+func printDashboardActiveWake(out io.Writer, style dashboardStyle, wakeID string, lock map[string]any, counts map[string]any, recentResponses int, events []Event) {
+	start := str(lock["started_at"])
+	printKeyValue(out, style, "wake", style.accent(wakeID))
+	printKeyValue(out, style, "state", style.warn("running now"))
+	printKeyValue(out, style, "started", start)
+	printKeyValue(out, style, "duration", durationText(start, ""))
+	printKeyValue(out, style, "assessment", style.paint(activeAssessmentColor(counts), activeWakeAssessment(counts)))
+	printKeyValue(out, style, "responses", fmt.Sprintf("%d model, %d text, %d text-only loops", countInt(counts, "model_responses"), countInt(counts, "model_text"), countInt(counts, "text_only")))
+	printKeyValue(out, style, "tools", fmt.Sprintf("%d total  shell/search/fetch/sleep=%d/%d/%d/%d",
+		countInt(counts, "tool_calls"),
+		countInt(counts, "shell"),
+		countInt(counts, "search"),
+		countInt(counts, "fetch"),
+		countInt(counts, "sleep_or_finish"),
+	))
+	printKeyValue(out, style, "health", activeHealthText(style, counts))
+	if latest := latestEventForWake(events, wakeID); latest != nil {
+		printKeyValue(out, style, "latest event", fmt.Sprintf("%s %s", str(latest["time"]), str(latest["type"])))
+	}
+	printKeyValue(out, style, "recent eval", fmt.Sprintf("%d response-sized events considered", recentResponses))
+}
+
 func printDashboardWork(out io.Writer, style dashboardStyle, wake map[string]any, counts map[string]any, worldChanged bool) {
 	assessment := dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), false)
 	printKeyValue(out, style, "summary", style.paint(assessmentColor(counts, worldChanged, lenArray(wake["errors"]), false), assessment))
@@ -890,6 +926,30 @@ func printDashboardWork(out io.Writer, style dashboardStyle, wake map[string]any
 	printDashboardTools(out, style, wake)
 	printDashboardText(out, style, wake)
 	printDashboardErrors(out, style, wake)
+}
+
+func printDashboardActiveWork(out io.Writer, style dashboardStyle, wakeID string, counts map[string]any, events []Event) {
+	printKeyValue(out, style, "summary", style.paint(activeAssessmentColor(counts), activeWakeAssessment(counts)))
+	printKeyValue(out, style, "events", fmt.Sprintf("%d response-sized events during active wake", len(recentResponseEvents(events, wakeID, 0))))
+	if errors := recentEventsOfType(events, wakeID, "model_error", 3); len(errors) > 0 {
+		printKeyValue(out, style, "model errors", style.bad(strconv.Itoa(countInt(counts, "model_errors"))))
+		for _, event := range errors {
+			fmt.Fprintf(out, "    - %s\n", compactOneLine(str(event["error"]), 180))
+		}
+	}
+	if toolEvents := recentEventsOfType(events, wakeID, "tool_call", 4); len(toolEvents) > 0 {
+		printKeyValue(out, style, "tools", fmt.Sprintf("%d call(s)", countInt(counts, "tool_calls")))
+		for _, event := range toolEvents {
+			fmt.Fprintf(out, "    - %s %s\n", style.accent(str(event["tool"])), compactOneLine(compactJSON(event["arguments"]), 140))
+		}
+	}
+	if textEvents := recentEventsOfType(events, wakeID, "model_text", 3); len(textEvents) > 0 {
+		printKeyValue(out, style, "text", fmt.Sprintf("%d output(s)", countInt(counts, "model_text")))
+		for _, event := range textEvents {
+			payload, _ := event["text"].(map[string]any)
+			fmt.Fprintf(out, "    - %s\n", compactOneLine(str(payload["preview"]), 180))
+		}
+	}
 }
 
 func printDashboardWorld(out io.Writer, style dashboardStyle, wake map[string]any, worldChanged bool) {
@@ -1033,6 +1093,22 @@ func dashboardAssessment(counts map[string]any, worldChanged bool, wakeErrors in
 	return "no wake activity recorded yet"
 }
 
+func activeWakeAssessment(counts map[string]any) string {
+	if countInt(counts, "controller_errors") > 0 {
+		return "attention needed: controller errors during active wake"
+	}
+	if countInt(counts, "model_errors") > 0 {
+		return "attention needed: model errors during active wake"
+	}
+	if countInt(counts, "tool_calls") > 0 {
+		return "tool activity in progress"
+	}
+	if countInt(counts, "model_responses") > 0 || countInt(counts, "model_text") > 0 {
+		return "model responses in progress"
+	}
+	return "wake started; waiting for model activity"
+}
+
 func assessmentColor(counts map[string]any, worldChanged bool, wakeErrors int, active bool) string {
 	if active {
 		return ansiYellow
@@ -1050,6 +1126,31 @@ func assessmentColor(counts map[string]any, worldChanged bool, wakeErrors int, a
 		return ansiYellow
 	}
 	return ansiWhite
+}
+
+func activeAssessmentColor(counts map[string]any) string {
+	if countInt(counts, "controller_errors") > 0 || countInt(counts, "model_errors") > 0 {
+		return ansiRed
+	}
+	if countInt(counts, "tool_calls") > 0 {
+		return ansiCyan
+	}
+	if countInt(counts, "model_responses") > 0 || countInt(counts, "model_text") > 0 {
+		return ansiGreen
+	}
+	return ansiYellow
+}
+
+func activeHealthText(style dashboardStyle, counts map[string]any) string {
+	text := fmt.Sprintf("%d model errors, %d controller errors, %d ignored required-tool responses",
+		countInt(counts, "model_errors"),
+		countInt(counts, "controller_errors"),
+		countInt(counts, "required_ignored"),
+	)
+	if countInt(counts, "model_errors") > 0 || countInt(counts, "controller_errors") > 0 {
+		return style.bad(text)
+	}
+	return style.good(text)
 }
 
 func reasonColor(reason string) string {
@@ -1110,6 +1211,25 @@ func takeLastEvents(items []Event, n int) []Event {
 	return items[len(items)-n:]
 }
 
+func latestEventForWake(events []Event, wakeID string) Event {
+	for i := len(events) - 1; i >= 0; i-- {
+		if str(events[i]["wake_id"]) == wakeID {
+			return events[i]
+		}
+	}
+	return nil
+}
+
+func recentEventsOfType(events []Event, wakeID string, eventType string, limit int) []Event {
+	selected := []Event{}
+	for _, event := range events {
+		if str(event["wake_id"]) == wakeID && str(event["type"]) == eventType {
+			selected = append(selected, event)
+		}
+	}
+	return takeLastEvents(selected, limit)
+}
+
 func formatDashboardEvent(style dashboardStyle, event Event) string {
 	kind := str(event["type"])
 	wake := str(event["wake_id"])
@@ -1128,6 +1248,8 @@ func formatDashboardEvent(style dashboardStyle, event Event) string {
 		detail = fmt.Sprintf("model=%s finish=%s tool_calls=%v", str(event["model"]), str(event["finish_reason"]), event["tool_call_count"])
 	case "wake_end":
 		detail = "reason=" + str(event["end_reason"])
+	case "model_error":
+		detail = "error=" + compactOneLine(str(event["error"]), 120)
 	}
 	if detail != "" {
 		detail = "  " + detail
@@ -1633,6 +1755,7 @@ func resolveWakeID(cfg Config, requested string) string {
 func countForWake(events []Event, wakeID string) map[string]any {
 	counts := map[string]any{
 		"model_responses":       0,
+		"model_errors":          0,
 		"model_text":            0,
 		"text_only":             0,
 		"required_ignored":      0,
@@ -1653,6 +1776,8 @@ func countForWake(events []Event, wakeID string) map[string]any {
 		switch str(event["type"]) {
 		case "model_response":
 			inc(counts, "model_responses")
+		case "model_error":
+			inc(counts, "model_errors")
 		case "model_text":
 			inc(counts, "model_text")
 		case "model_text_only":
@@ -1688,7 +1813,7 @@ func recentResponseEvents(events []Event, wakeID string, limit int) []Event {
 			continue
 		}
 		switch str(event["type"]) {
-		case "model_response", "model_text", "model_text_only", "required_tool_choice_ignored", "tool_call", "shell_result", "search_result", "fetch_result":
+		case "model_response", "model_error", "model_text", "model_text_only", "required_tool_choice_ignored", "tool_call", "shell_result", "search_result", "fetch_result":
 			selected = append(selected, event)
 		}
 	}
@@ -1714,6 +1839,7 @@ func worldChangedFromEvents(events []Event, wakeID string) bool {
 
 func printCounts(out io.Writer, counts map[string]any) {
 	fmt.Fprintf(out, "model responses: %d (%s)\n", counts["model_responses"], counts["response_count_source"])
+	fmt.Fprintf(out, "model errors: %d\n", counts["model_errors"])
 	fmt.Fprintf(out, "model text: %d\n", counts["model_text"])
 	fmt.Fprintf(out, "text-only: %d\n", counts["text_only"])
 	fmt.Fprintf(out, "required ignored: %d\n", counts["required_ignored"])

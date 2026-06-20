@@ -141,8 +141,14 @@ def test_go_cli_file_stdin_and_output_routing(repo_root: Path, tmp_path: Path) -
 def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) -> None:
     maker, wake_id = write_cli_fixture(tmp_path)
     base = ["--maker-place", str(maker)]
+    fake_bin = tmp_path / "fake-dashboard-bin"
+    fake_bin.mkdir()
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text("#!/usr/bin/env bash\nexit 0\n")
+    fake_docker.chmod(0o755)
+    env = {"PATH": f"{fake_bin}:{os.environ['PATH']}"}
 
-    dashboard = run_maker(repo_root, [*base, "dashboard", "--once", "--no-clear", "--events", "3"])
+    dashboard = run_maker(repo_root, [*base, "dashboard", "--once", "--no-clear", "--events", "3"], env=env)
     assert "Maker Dashboard" in dashboard.stdout
     assert "\x1b[" not in dashboard.stdout
     assert "[IDLE] no controller loop or wake is active" in dashboard.stdout
@@ -156,13 +162,18 @@ def test_go_cli_dashboard_once_and_output_file(repo_root: Path, tmp_path: Path) 
     assert "world         unchanged entries=1->1 diff_lines=0" in dashboard.stdout
     assert "tools         1 call(s)" in dashboard.stdout
 
-    color_dashboard = run_maker(repo_root, [*base, "dashboard", "--once", "--no-clear", "--color", "always"])
+    color_dashboard = run_maker(
+        repo_root,
+        [*base, "dashboard", "--once", "--no-clear", "--color", "always"],
+        env=env,
+    )
     assert "\x1b[" in color_dashboard.stdout
 
     out_path = tmp_path / "dashboard.out"
     run_maker(
         repo_root,
         [*base, "--output", str(out_path), "dashboard", "--once", "--no-clear", "--events", "2"],
+        env=env,
     )
     written = out_path.read_text()
     assert "Maker Dashboard" in written
