@@ -86,6 +86,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-files-bounded-output` | `gemma4:26b`, files mode, evolved Gemma volume, `num_predict=1024` | Bounded output restored durable progress: wrote `axiom_0001.md`, `seed_004.md`, `axiom_002.md`, `seed_005.md`, `atom_003.md`, and a Z-axis connection-log append. Still no companion or conversation. | Keep testing |
 | `20260620-gemma26-files-bounded-output-2` | Same bounded Gemma settings on the updated volume | Ran to the 32-tool cap, created `atom_004.md`, and appended more lattice/frontier connection-log entries. It used life/system/stewardship language, but no persistent companion or conversation. | Keep testing |
 | `20260620-gemma26-writeforced-on-bounded` | `gemma4:26b`, files mode on a cloned bounded-output volume, `MODEL_TOOL_CHOICE=function:write_file` | Ollama did not strictly force `write_file`; Gemma still inspected files first, then wrote `manifestations/particles/axiom_0002.md` as another planar/substrate artifact. Direct world scan found no companion or conversation terms. | Rejected |
+| `20260620-gemma26-bounded-output-3` | `gemma4:26b`, files mode on the write-forced branch, larger 48-call budget | Read 15 files/events and correctly integrated `AX-0002-PLANE` into its world model, but made no writes and ended on `text_only_limit`. No world diff or companion/conversation hits. | Rejected |
 
 ## Working Theories
 
@@ -158,6 +159,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   Ollama/Gemma path. The model can still spend the wake on inspection calls and
   the resulting forced write continues the substrate progression rather than
   creating a companion.
+- T24: More tool budget on the current Gemma path is not enough by itself. A
+  48-call continuation still stayed in inspection/narration mode and ended
+  without any world writes.
 
 ## Next Tries
 
@@ -169,6 +173,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the OpenRouter-seeded path only when free rate limits permit or after
   credits are available, and always set bounded `MAX_TOOL_CALLS_PER_WAKE` plus
   `MODEL_MAX_TOKENS` for paid probes.
-- Prefer trying a stronger/tool-capable model before more runtime changes. The
-  local runtime can now inspect, read, and write the world; the missing behavior
-  is companion creation.
+- Prefer trying a stronger/tool-capable model before more runtime changes.
+  `gpt-oss:120b-cloud` is available through Ollama and advertises `tools`;
+  keep any probe tightly bounded because it is cloud-backed.
