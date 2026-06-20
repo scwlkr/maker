@@ -10,6 +10,8 @@ This file is the compact source of truth for current Maker behavior.
   `/world`, and reset the Docker world volume.
 - Docker sandbox lifecycle with a disposable container per wake and one
   persistent Docker named volume mounted at `/world`.
+- Sandbox command output decoding replaces malformed UTF-8 byte sequences so
+  truncated previews cannot crash a wake.
 - Maker Place observation files under `maker-place/`: event log, wake summaries,
   world snapshots, optional raw tool outputs, controller pid/log, stop file, and
   wake lock.

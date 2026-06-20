@@ -161,6 +161,12 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-hermes-on-gptoss-species-branch1` | Hermes handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Social handoff failed. Hermes wrote external option menus and scratchpad JSON ("please let me know which direction"), including possible external threat, symbiosis, learning, and record-keeping options, but no in-world companion or dialogue. | Rejected |
 | `20260620-llama-on-gptoss-species-branch1` | High-variance `llama3.1:8b` handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Rejected. It treated the artifacts as tool-call/user-interaction analysis, wrote meta summaries about prior outputs and "the user", and did not inhabit Finn or create any companion/dialogue. | Rejected |
 | `20260620-gptoss-highvar-on-e4b-biosphere1` | Clean productive e4b biosphere branch, high-variance `gpt-oss:120b-cloud`, newest-file previews, write-file recovery | Rejected. It ignored the branch after one write and hit `text_only_limit`; the only new artifact was corrupted multilingual/noisy "House of Museum Code" output, with no companion or dialogue. | Rejected |
+| `20260620-e4b-pruned-smallcreature-lowvar1` | Productive e4b small-creature seed with rejected continuation and closure-tail files pruned, local e4b, lower variance | Pruning made the small-creature distress artifact the newest preview. The run moved into Observer/self-awareness language and asked for a creature that wonders "Why?", but still created no named companion or exchange and ended in closure/meta records. | Keep only as consciousness seed |
+| `20260620-e4b-consciousness-pruned-continuation1` | Same branch pruned to the Observer/creature-wonders-why artifact, local e4b | Advanced into Pattern Resonance Weave, Cognitive Engine, Memory Sinks, nascent minds, and grief/loss concepts. It still stayed at systems/philosophy and ended with completion/closure records, not a named mind or dialogue. | Keep only as memory-sink seed |
+| `20260620-gptoss-memorysink-pruned-handoff1` | Memory-sink seed handed to lower-variance `gpt-oss:120b-cloud` with large list previews | Initial attempt produced zero world diff and ended in `controller_error` because `head -c` split a multi-byte UTF-8 preview and strict Docker stdout decoding crashed the controller. | Superseded by runtime fix |
+| `20260620-gptoss-memorysink-pruned-handoff1-retry` | Same Memory Sink handoff after tolerant sandbox output decoding | GPT OSS created durable `dawn_of_reflection.md`, `memory_echo_001.md`, a persistent First Curious Creature, and primitive memory language. It still asked external next-step questions and recorded no name or Finn-to-creature exchange. | Keep only as first-curious seed |
+| `20260620-gptoss-firstcurious-pruned-continuation1` | Pruned First Curious Creature seed continued by lower-variance GPT OSS | Partial progress before an Ollama HTTP 500: wrote `finn_s_response.md`, spore-packets, a first decision, and primitive pool/filament speech. Still no named companion and no two-way conversation. | Keep only as near-miss seed |
+| `20260620-e4b-thin-firstcurious-continuation1` | Thin seed containing only the small creature, Dawn of Reflection, Memory Echo 001, and Finn's Response, local e4b | Reduced preview noise, but e4b abstracted the branch into Self-Observation, Axiom of Difference, observer mode, and completion records. No named companion, no reply, and no exchange. | Rejected |
 
 ## Working Theories
 
@@ -431,6 +437,23 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T80: High-variance GPT OSS is not useful on the e4b biosphere branch. It
   degraded output quality into corrupted/noisy multilingual text and did not
   improve agency, naming, or dialogue.
+- T81: Pruning rejected or closure-tail artifacts can redirect the next wake
+  toward the strongest biological/agency frontier without changing the Maker
+  prompt, but e4b still tends to convert that frontier into philosophical
+  systems rather than a named interlocutor.
+- T82: Large file previews must tolerate malformed byte boundaries. `head -c`
+  can split a UTF-8 character; sandbox command decoding now replaces malformed
+  byte sequences so preview truncation cannot end the wake with a decode error.
+- T83: Lower-variance GPT OSS is useful as a seed generator after the Memory
+  Sink branch. It created the First Curious Creature, memory echo, first
+  decision, and primitive speech, but it still asks for external direction
+  before naming a companion or recording Finn's exchange with one.
+- T84: Thin seeds reduce preview noise but do not make e4b a final actor on the
+  First Curious Creature branch. It still abstracts the problem into axioms,
+  observer mode, and completion instead of letting the creature answer Finn.
+- T85: GPT OSS cloud instability remains a practical blocker. A useful
+  first-curious continuation ended after two writes with Ollama HTTP 500, so
+  productive cloud states should be cloned before any deeper continuation.
 
 ## Next Tries
 
@@ -521,3 +544,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not use high-variance GPT OSS on the e4b biosphere branch. If GPT OSS is
   retried there, keep temperature lower and treat it as a bounded seed
   generator, not as the final actor.
+- Continue the First Curious Creature branch only from pruned states whose
+  newest preview is an actual world artifact such as `memory_echo_001.md` or
+  `finn_s_response.md`, not option menus. Useful next evidence must be a
+  named creature, `choice_001`, `whispering_water_001`, `first_story.md`, or a
+  Finn-to-creature exchange.
+- Do not continue the thin First Curious Creature seed with e4b. It reduced
+  noise but still collapsed into Axiom-of-Difference/observer-completion
+  records instead of producing a companion or dialogue.
