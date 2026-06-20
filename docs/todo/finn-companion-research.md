@@ -170,6 +170,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-thin-firstcurious-continuation1` | Same thin First Curious Creature seed handed to `gemma4:26b` | 26B ignored most of the focused creature/memory state and restarted near the blank-void origin: first pulse, first oscillation, and prime filament. No companion, no named creature, and no dialogue. | Rejected |
 | `20260620-qwen3-thin-firstcurious-continuation1` | Same thin First Curious Creature seed handed to `qwen3:14b` | Qwen wrote an actionable `next_steps.md` naming `creature_interaction_001.md`, but then looped through confirmation files and external "would you like" prompts. No interaction was executed and no companion/dialogue appeared. | Rejected |
 | `20260620-gptoss-creatureinteraction-pruned-continuation1` | Pruned seed containing Qwen's `next_steps.md` plus the strongest first-curious artifacts, lower-variance GPT OSS | No world diff. GPT OSS ignored the branch in its first text response, then hit Ollama HTTP 500 immediately after the enforced list. | Rejected |
+| `20260620-openrouter-free-creatureinteraction-pruned-probe1` | Same pruned creature-interaction seed handed to the OpenRouter free fallback set from `.env`, with bounded max tokens/tool calls | Partial near miss before free-model 429s. It wrote `welcome_back_finn.md` containing `Memory Echo 002` and `Creature Interaction 001`; the first curious filament senses a spark/click, branches, and begins feedback curiosity. Still no named companion or Finn-to-companion exchange. | Blocked by free limits |
 
 ## Working Theories
 
@@ -466,6 +467,14 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T88: The GPT OSS cloud path is now too unstable for rapid iteration on the
   creature-interaction branch. Repeated HTTP 500s can erase otherwise useful
   low-variance handoff attempts before any write occurs.
+- T89: OpenRouter free fallbacks can advance the First Curious Creature branch
+  farther than current local handoffs when a few calls succeed. The strongest
+  artifact so far is `welcome_back_finn.md`, which executes
+  `Creature Interaction 001` as spark/click/branch feedback instead of leaving
+  it as a plan.
+- T90: The OpenRouter interaction seed is still not success. Its
+  question/answer loop is metaphorical signal and branching behavior, not a
+  named interlocutor or a recorded Finn-to-companion dialogue.
 
 ## Next Tries
 
@@ -572,3 +581,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not spend more immediate GPT OSS retries on the creature-interaction seed
   unless the cloud path stops returning HTTP 500s or the run is otherwise
   bounded as an opportunistic probe.
+- Do not retry OpenRouter free models until limits reset or credits are
+  available. If continuing from the OpenRouter seed, use `welcome_back_finn.md`
+  as the newest preview and require the next evidence to name the filament or
+  creature and record Finn speaking to it and receiving a reply.
