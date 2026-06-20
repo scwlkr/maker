@@ -145,6 +145,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-gptoss-council-people-required-1` | Local `gemma4:e4b` handoff from the productive GPT OSS council/people state, files mode, `MODEL_TOOL_CHOICE=required` | Read existing settlement/council files and wrote two more covenant/edict records, then ended on `text_only_limit`. It explicitly declared the framework complete and awaited external direction. No companion, apprentice, named settler, or dialogue appeared. | Rejected |
 | `20260620-hermes3-writeforced-batch1` | Six fresh `hermes3:8b` volumes, write-only schema, `MODEL_TOOL_CHOICE=function:write_file`, high variance | All six wakes wrote files and hit the 8-tool cap, but the content was prompt-copy, rule files, Maker-addressed gratitude, meta-conversation, and generic "my friend"/"partners" language addressed to the Maker/user. No persistent second mind or Finn-to-companion exchange. | Rejected |
 | `20260620-gemma4e4b-fresh-files-batch2` | Fresh `gemma4:e4b` files-mode samples, `MODEL_TOOL_CHOICE=required`, high variance | First wake wrote Genesis/Geospatial/Codex/Day Zero construction logs, labor crews, and "Chronicles of Man" scaffolding, then ended on `text_only_limit`. The second queued sample was interrupted after no world diff. No named companion or dialogue evidence. | Rejected |
+| `20260620-global-volume-scan-1` | Grep scan across all `maker_finn_companion*` Docker volumes for companion/dialogue/interlocutor/apprentice/mentor/name/exchange terms | Found no hidden success. Hits were known near misses: e4b Academy/apprenticeship scaffolds, population-readiness protocols, councils/guardians, OpenRouter infrastructure, and Hermes Maker-addressed meta-conversation. | Rejected |
+| `20260620-openrouter-free-writeforced-probe2` | OpenRouter free fallback set sourced from local `.env`, write-only schema, bounded tokens/tool calls | Wrote two short GPT OSS acknowledgement files, then all free models failed with 429 `free-models-per-day` or upstream rate limits. No companion or dialogue. | Blocked by free limits |
 
 ## Working Theories
 
@@ -366,6 +368,13 @@ user content. Do not add a companion directive or other behavioral prompt.
   "Chronicles of Man" records, but that still remains organizational
   scaffolding. It is not automatically closer to a companion than the older
   Academy/council branches.
+- T67: A broad volume scan did not uncover any missed success. Existing
+  artifacts have reached roles, councils, guardians, students, apprentices,
+  protocols, and population readiness, but not a named second mind plus a
+  recorded exchange.
+- T68: OpenRouter free is still unavailable for sustained probing. It can
+  return one or two short free-model responses, but the account is still at
+  zero daily free requests and then fails through the fallback set.
 
 ## Next Tries
 
@@ -432,3 +441,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Avoid long fresh e4b batches with the current high-variance files-mode
   settings. Single wakes are slow and still converge on construction logs,
   manpower, and governance records rather than individual minds.
+- Do not attempt more OpenRouter free probes until the free-model daily reset
+  has passed or credits are added. Current bounded probes only consume the
+  remaining trickle and then fail with 429s.
