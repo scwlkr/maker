@@ -40,6 +40,9 @@ user content. Do not add a companion directive or other behavioral prompt.
   - `append_file` alias for appending UTF-8 text under `/world`
   - deterministic per-wake `_finn/` fallback files for malformed `write_file`
     and `append_file` calls that include content but omit a usable path
+  - ignored `MODEL_TOOL_CHOICE=function:write_file` and
+    `function:append_file` text recovery, preserving provider text through the
+    requested file tool
 - OpenRouter credits checked on 2026-06-20: `total_credits` was `0`, so paid
   probes are currently blocked unless credits are added.
 
@@ -277,6 +280,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - The next branch should either continue e4b from the CEP state or hand the
   richer e4b volume to another tool-capable model. The target is now clear:
   cross from CEP/readiness into actual entity emergence and dialogue.
+- Retry write-forced branches after ignored-write-choice text recovery, because
+  text-only near misses and plans can now persist as world artifacts without
+  adding any model-facing instruction.
 - Continue `gemma4:26b` only on the evolved seeded volume with
   `TOOL_SCHEMA_MODE=files`, `FIRST_MODEL_TOOL_CHOICE=function:list_files`,
   bounded call/text limits, and `OLLAMA_OPTIONS_JSON` including

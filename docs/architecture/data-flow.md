@@ -14,8 +14,11 @@
 4. If `FIRST_MODEL_TOOL_CHOICE=function:list_files` was requested and the
    provider ignored it, the controller executes a safe root `list_files` call.
 5. Text content is summarized and recorded.
-6. Tool calls are normalized and executed in order.
-7. Tool results are appended to the conversation as tool messages.
+6. If a provider ignores `MODEL_TOOL_CHOICE=function:write_file` or
+   `function:append_file` and returns text, the controller preserves that text
+   through the requested file tool.
+7. Tool calls are normalized and executed in order.
+8. Tool results are appended to the conversation as tool messages.
 
 ## Tool Execution
 

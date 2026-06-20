@@ -380,6 +380,29 @@ class Controller:
 
                 tool_calls = assistant_message.get("tool_calls") or []
                 if not tool_calls:
+                    active_tool_choice = first_turn_tool_choice if first_turn_tool_choice is not None else self.active_tool_choice()
+                    enforced_file_tool_call = file_tool_call_from_ignored_choice(
+                        active_tool_choice,
+                        self.allowed_tool_names,
+                        str(content or ""),
+                        call_index + 1,
+                    )
+                    if enforced_file_tool_call is not None:
+                        assistant_message = {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [enforced_file_tool_call],
+                        }
+                        messages[-1] = assistant_message
+                        tool_calls = assistant_message["tool_calls"]
+                        function = enforced_file_tool_call["function"]
+                        self.maker_place.append_event(
+                            "file_tool_choice_text_enforced",
+                            wake_id,
+                            tool=function["name"],
+                            original_content=summarize_text(str(content), 1000),
+                        )
+                if not tool_calls:
                     consecutive_text_only += 1
                     self.maker_place.append_event(
                         "model_text_only", wake_id, consecutive=consecutive_text_only
@@ -721,6 +744,33 @@ def first_tool_call_from_choice(
                 "id": "enforced-first-tool-choice-1",
                 "type": "function",
                 "function": {"name": name, "arguments": arguments},
+            }
+        ]
+    )[0]
+
+
+def file_tool_call_from_ignored_choice(
+    tool_choice: Any | None,
+    allowed_tool_names: set[str],
+    content: str,
+    call_index: int,
+) -> dict[str, Any] | None:
+    if not content:
+        return None
+    if not isinstance(tool_choice, dict):
+        return None
+    function = tool_choice.get("function")
+    if not isinstance(function, dict):
+        return None
+    name = function.get("name")
+    if name not in {"write_file", "append_file"} or name not in allowed_tool_names:
+        return None
+    return normalize_tool_calls(
+        [
+            {
+                "id": f"enforced-{name}-text-{call_index}",
+                "type": "function",
+                "function": {"name": name, "arguments": {"content": content}},
             }
         ]
     )[0]

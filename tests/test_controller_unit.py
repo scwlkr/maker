@@ -68,6 +68,42 @@ class TextOnlyModelClient:
         }
 
 
+class IgnoringWriteChoiceThenFinishModelClient:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.tool_choices: list[object | None] = []
+
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
+        self.calls += 1
+        self.tool_choices.append(tool_choice)
+        if self.calls == 1:
+            message = {"role": "assistant", "content": "preserve this ignored write\n"}
+        else:
+            message = {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "finish-call",
+                        "type": "function",
+                        "function": {"name": "sleep_or_finish", "arguments": {}},
+                    }
+                ],
+            }
+        return {
+            "id": f"ignored-write-{self.calls}",
+            "model": model,
+            "choices": [{"index": 0, "finish_reason": "stop", "message": message}],
+        }
+
+
 class TextJsonToolModelClient:
     def __init__(self) -> None:
         self.calls = 0
@@ -314,6 +350,35 @@ def test_text_only_response_logs_required_tool_choice_ignored(
     events = (settings.maker_place_dir / "events.jsonl").read_text()
     assert "required_tool_choice_ignored" in events
     assert "text_only_limit_reached" in events
+
+
+def test_ignored_write_file_choice_preserves_text_as_fallback_write(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "files"
+    settings.model_tool_choice = {"type": "function", "function": {"name": "write_file"}}
+    maker = MakerPlace(settings.maker_place_dir)
+    client = IgnoringWriteChoiceThenFinishModelClient()
+
+    summary = Controller(settings, maker_place=maker, model_client=client).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert client.calls == 2
+    assert [call["name"] for call in summary["tool_calls"]] == ["write_file", "sleep_or_finish"]
+    first_call = summary["tool_calls"][0]
+    assert first_call["id"] == "enforced-write_file-text-1"
+    assert first_call["arguments"] == {"content": "preserve this ignored write\n"}
+    assert first_call["result"]["path"].startswith("_finn/")
+    assert first_call["result"]["path"].endswith("/write_file_0001.md")
+    assert FakeSandbox.commands
+    events = (settings.maker_place_dir / "events.jsonl").read_text()
+    assert "file_tool_choice_text_enforced" in events
+    assert "write_file_path_defaulted" in events
 
 
 def test_exact_json_text_tool_call_mode_promotes_tool_calls(
