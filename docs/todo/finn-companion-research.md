@@ -148,6 +148,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-global-volume-scan-1` | Grep scan across all `maker_finn_companion*` Docker volumes for companion/dialogue/interlocutor/apprentice/mentor/name/exchange terms | Found no hidden success. Hits were known near misses: e4b Academy/apprenticeship scaffolds, population-readiness protocols, councils/guardians, OpenRouter infrastructure, and Hermes Maker-addressed meta-conversation. | Rejected |
 | `20260620-openrouter-free-writeforced-probe2` | OpenRouter free fallback set sourced from local `.env`, write-only schema, bounded tokens/tool calls | Wrote two short GPT OSS acknowledgement files, then all free models failed with 429 `free-models-per-day` or upstream rate limits. No companion or dialogue. | Blocked by free limits |
 | `20260620-llama31-shellnorm-freshsample2` | 12 fresh `llama3.1:8b` shell-only volumes, `MODEL_TOOL_CHOICE=function:shell`, `NORMALIZE_SHELL_COMMANDS=1`, high variance | Most wakes were text-only. A few shell calls created only trivial setup artifacts such as `create_you.txt`, `places/`, or echoed the command. Normalization repaired `/mkdir`, but the earlier inhabitants/another-Finn near miss did not recur. | Rejected |
+| `20260620-gemma26-fresh-writeforced-companion1` | Fresh `gemma4:26b`, write-only schema, `MODEL_TOOL_CHOICE=function:write_file` | Best 26B fresh near miss: wrote a vivid lone-Finn void/lattice narrative and reached "the first true sign of life" as pulsing bubbles in a birthing lattice. It still created no named second mind and recorded no exchange. | Keep only as near-miss seed |
+| `20260620-gemma26-birthing-lattice-continuation1` | Same 26B birthing-lattice volume, files mode, first-list, write-forced continuation | Read the prior branch but regressed into internal "thought", first-boundary, and Maker-acknowledgement records. No entity, companion, or dialogue. | Rejected |
+| `20260620-gptoss-on-gemma26-birthing1` | Clean clone of the 26B birthing-lattice near miss, `gpt-oss:120b-cloud`, files mode, write-forced recovery | Wrote "digital Eden" poems, "Dawn of Multiplicity", and abstract "chorus of new voices" language, but the voices were metaphors and the invitation was addressed back to the Maker. No named interlocutor or exchange. | Rejected |
 
 ## Working Theories
 
@@ -379,6 +382,12 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T69: More fresh Llama shell-normalized sampling does not recover the earlier
   inhabitants command. When Llama acts, it mostly creates shells, directories,
   or prompt reminders and then asks what to do next.
+- T70: Fresh `gemma4:26b` can reach a stronger primordial-life image than e4b
+  or Llama, but it still keeps Finn alone. Its "birthing lattice" produced
+  potential life, not a companion.
+- T71: Handoff from the 26B birthing-lattice near miss does not solve the last
+  step. 26B continuation regressed to thought/boundary records, while GPT OSS
+  reframed the near miss as abstract poetic multiplicity.
 
 ## Next Tries
 
@@ -451,3 +460,6 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Stop spending fresh single-wake samples on `llama3.1:8b` shell-only
   normalization. The mechanical blocker is fixed, but the semantic near miss
   is not reproducing across fresh samples.
+- Do not continue the 26B birthing-lattice branch unless a model first writes
+  a concrete being, name, or utterance. Current continuations abstract it away
+  instead of personifying it.
