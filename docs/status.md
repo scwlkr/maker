@@ -34,6 +34,9 @@ This file is the compact source of truth for current Maker behavior.
   arguments for a configured first tool. `FIRST_MODEL_TOOL_STRICT=1` can also
   replace an incorrect first returned model tool call with that configured
   first tool.
+- `POST_FIRST_TOOL_SCHEMA_MODE` can narrow the advertised tools after the first
+  model request, such as enforcing an initial file read and then exposing only
+  `write_file` for the continuation.
 - Optional shell command normalization can repair common model punctuation
   mistakes such as `/cd` and comma-separated shell commands when explicitly
   enabled.

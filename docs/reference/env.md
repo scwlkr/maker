@@ -22,6 +22,7 @@ Settings come from process environment and `.env`.
 | `FIRST_MODEL_TOOL_ARGS_JSON` | empty | Optional JSON object used as arguments when the controller enforces `FIRST_MODEL_TOOL_CHOICE`; unset keeps the safe default root `list_files` behavior. |
 | `FIRST_MODEL_TOOL_STRICT` | `0` | `1` replaces the first returned model tool call with the enforceable configured `FIRST_MODEL_TOOL_CHOICE`, instead of only enforcing when the model returns no tool calls. |
 | `TOOL_SCHEMA_MODE` | `all` | `all` exposes all native tools; `shell-only` exposes only `shell`; `write-only` exposes only `write_file`; `files` exposes `list_files`, `read_file`, `write_file`, and `append_file` |
+| `POST_FIRST_TOOL_SCHEMA_MODE` | empty | Optional tool schema mode used after the first model request in a wake; useful for an enforced first read/list followed by narrower write-only continuation. |
 | `TEXT_TOOL_CALL_MODE` | `disabled` | `exact-json` executes assistant text that is exactly a JSON tool call object for an advertised tool; `exact-literal` also accepts Python literal objects; `fenced-json` and `fenced-literal` unwrap a whole-message code fence before parsing |
 
 ## Wake And Tool Limits

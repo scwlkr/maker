@@ -230,6 +230,46 @@ class RecordingToolChoiceModelClient:
         }
 
 
+class RecordingToolSchemasModelClient:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.tool_names_by_call: list[list[str]] = []
+        self.tool_choices: list[object | None] = []
+
+    def chat(
+        self,
+        model: str,
+        messages: list[dict],
+        tools: list[dict],
+        timeout: int,
+        tool_choice: object | None = None,
+    ) -> dict:
+        self.calls += 1
+        self.tool_choices.append(tool_choice)
+        self.tool_names_by_call.append([schema["function"]["name"] for schema in tools])
+        if self.calls == 1:
+            message = {"role": "assistant", "content": "I will inspect something else."}
+        elif self.calls == 2:
+            message = {"role": "assistant", "content": "preserve the focused continuation\n"}
+        else:
+            message = {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "finish-call",
+                        "type": "function",
+                        "function": {"name": "sleep_or_finish", "arguments": "{}"},
+                    }
+                ],
+            }
+        return {
+            "id": f"recording-schemas-{self.calls}",
+            "model": model,
+            "choices": [{"index": 0, "finish_reason": "stop", "message": message}],
+        }
+
+
 class IgnoringFirstToolChoiceModelClient:
     def __init__(self) -> None:
         self.calls = 0
@@ -406,6 +446,34 @@ def test_strict_first_model_tool_choice_overrides_wrong_tool_call(
     assert "first_tool_choice_enforced" in events
     assert '"strict": true' in events
     assert '"list_files"' in events
+
+
+def test_post_first_tool_schema_mode_switches_after_first_request(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(controller, "Sandbox", FakeSandbox)
+    FakeSandbox.snapshot = ""
+    FakeSandbox.commands = []
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "files"
+    settings.post_first_tool_schema_mode = "write-only"
+    settings.first_model_tool_choice = {"type": "function", "function": {"name": "read_file"}}
+    settings.first_model_tool_args = {"path": "target.md"}
+    settings.first_model_tool_strict = True
+    settings.model_tool_choice = {"type": "function", "function": {"name": "write_file"}}
+    maker = MakerPlace(settings.maker_place_dir)
+    client = RecordingToolSchemasModelClient()
+
+    summary = Controller(settings, maker_place=maker, model_client=client).run_wake()
+
+    assert summary is not None
+    assert summary["end_reason"] == "sleep_or_finish"
+    assert client.tool_names_by_call[0] == ["list_files", "read_file", "write_file", "append_file"]
+    assert client.tool_names_by_call[1] == ["write_file"]
+    assert client.tool_names_by_call[2] == ["write_file"]
+    assert [call["name"] for call in summary["tool_calls"]] == ["read_file", "write_file", "sleep_or_finish"]
+    assert summary["post_first_tool_schema_mode"] == "write-only"
+    assert summary["tool_calls"][1]["arguments"] == {"content": "preserve the focused continuation\n"}
 
 
 def test_exact_json_text_tool_call_mode_promotes_tool_calls(
@@ -857,12 +925,14 @@ def test_settings_parse_list_files_preview_chars(monkeypatch: pytest.MonkeyPatch
 def test_settings_parse_first_model_tool_args(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("FIRST_MODEL_TOOL_ARGS_JSON", '{"path":"_finn/song.md"}')
     monkeypatch.setenv("FIRST_MODEL_TOOL_STRICT", "1")
+    monkeypatch.setenv("POST_FIRST_TOOL_SCHEMA_MODE", "write-only")
     monkeypatch.setenv("MAKER_PLACE_DIR", str(tmp_path / "maker-place"))
 
     settings = controller.settings_from_env_file(tmp_path)
 
     assert settings.first_model_tool_args == {"path": "_finn/song.md"}
     assert settings.first_model_tool_strict is True
+    assert settings.post_first_tool_schema_mode == "write-only"
 
 
 def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:

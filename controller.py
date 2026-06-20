@@ -58,6 +58,7 @@ class Settings:
     first_model_tool_args: dict[str, Any] | None = None
     first_model_tool_strict: bool = False
     tool_schema_mode: str = "all"
+    post_first_tool_schema_mode: str | None = None
     text_tool_call_mode: str = "disabled"
     normalize_shell_commands: bool = False
     list_files_preview_chars: int = 0
@@ -254,6 +255,16 @@ class Controller:
             )
         self.tool_schemas = tool_schemas_for_mode(settings.tool_schema_mode)
         self.allowed_tool_names = tool_names_from_schemas(self.tool_schemas)
+        self.post_first_tool_schemas = (
+            tool_schemas_for_mode(settings.post_first_tool_schema_mode)
+            if settings.post_first_tool_schema_mode
+            else None
+        )
+        self.post_first_allowed_tool_names = (
+            tool_names_from_schemas(self.post_first_tool_schemas)
+            if self.post_first_tool_schemas is not None
+            else None
+        )
         self._stop_requested = False
 
     def request_stop(self, signum: int | None = None, frame: object | None = None) -> None:
@@ -280,6 +291,7 @@ class Controller:
             "first_model_tool_strict": self.settings.first_model_tool_strict,
             "model_max_tokens": self.settings.model_max_tokens,
             "tool_schema_mode": self.settings.tool_schema_mode,
+            "post_first_tool_schema_mode": self.settings.post_first_tool_schema_mode,
             "text_tool_call_mode": self.settings.text_tool_call_mode,
             "normalize_shell_commands": self.settings.normalize_shell_commands,
             "list_files_preview_chars": self.settings.list_files_preview_chars,
@@ -321,20 +333,24 @@ class Controller:
             consecutive_text_only = 0
             tool_call_limit_reached = False
             while not self._stop_requested:
-                if self.estimated_tokens(messages, self.tool_schemas) >= self.settings.context_limit_tokens:
+                first_request = not summary["model_responses"]
+                active_tool_schemas = self.active_tool_schemas(first_request)
+                active_allowed_tool_names = self.active_allowed_tool_names(first_request)
+                if self.estimated_tokens(messages, active_tool_schemas) >= self.settings.context_limit_tokens:
                     summary["end_reason"] = "context_exhausted"
                     self.maker_place.append_event(
                         "context_exhausted",
                         wake_id,
-                        estimated_tokens=self.estimated_tokens(messages, self.tool_schemas),
+                        estimated_tokens=self.estimated_tokens(messages, active_tool_schemas),
                         context_limit_tokens=self.settings.context_limit_tokens,
                     )
                     break
 
-                first_turn_tool_choice = self.settings.first_model_tool_choice if not summary["model_responses"] else None
+                first_turn_tool_choice = self.settings.first_model_tool_choice if first_request else None
                 response, used_model, response_info = self._chat_with_fallbacks(
                     messages,
                     wake_id,
+                    active_tool_schemas,
                     tool_choice_override=first_turn_tool_choice,
                 )
                 summary["model"] = used_model
@@ -345,7 +361,7 @@ class Controller:
                 promoted_tool_call = promote_text_tool_call(
                     assistant_message,
                     self.settings.text_tool_call_mode,
-                    self.allowed_tool_names,
+                    active_allowed_tool_names,
                 )
                 if promoted_tool_call is not None:
                     assistant_message = promoted_tool_call["assistant_message"]
@@ -362,7 +378,7 @@ class Controller:
                 if self.settings.first_model_tool_strict or not original_tool_calls:
                     enforced_first_tool_call = first_tool_call_from_choice(
                         first_turn_tool_choice,
-                        self.allowed_tool_names,
+                        active_allowed_tool_names,
                         self.settings.first_model_tool_args,
                     )
                 if enforced_first_tool_call is not None:
@@ -401,7 +417,7 @@ class Controller:
                     active_tool_choice = first_turn_tool_choice if first_turn_tool_choice is not None else self.active_tool_choice()
                     enforced_file_tool_call = file_tool_call_from_ignored_choice(
                         active_tool_choice,
-                        self.allowed_tool_names,
+                        active_allowed_tool_names,
                         str(content or ""),
                         call_index + 1,
                     )
@@ -536,10 +552,21 @@ class Controller:
                 time.sleep(1)
         self.maker_place.append_event("controller_loop_end")
 
+    def active_tool_schemas(self, first_request: bool) -> list[dict[str, Any]]:
+        if first_request or self.post_first_tool_schemas is None:
+            return self.tool_schemas
+        return self.post_first_tool_schemas
+
+    def active_allowed_tool_names(self, first_request: bool) -> set[str]:
+        if first_request or self.post_first_allowed_tool_names is None:
+            return self.allowed_tool_names
+        return self.post_first_allowed_tool_names
+
     def _chat_with_fallbacks(
         self,
         messages: list[dict[str, Any]],
         wake_id: str,
+        tool_schemas: list[dict[str, Any]],
         tool_choice_override: Any | None = None,
     ) -> tuple[dict[str, Any], str, dict[str, Any]]:
         errors: list[str] = []
@@ -548,7 +575,7 @@ class Controller:
                 response = self.model_client.chat(
                     model,
                     messages,
-                    self.tool_schemas,
+                    tool_schemas,
                     self.settings.model_timeout_seconds,
                     tool_choice=tool_choice_override,
                 )
@@ -1023,6 +1050,7 @@ def settings_from_env_file(repo_root: str | Path = ".") -> Settings:
         first_model_tool_args=parse_json_object_env("FIRST_MODEL_TOOL_ARGS_JSON"),
         first_model_tool_strict=os.getenv("FIRST_MODEL_TOOL_STRICT", "0") == "1",
         tool_schema_mode=os.getenv("TOOL_SCHEMA_MODE", "all"),
+        post_first_tool_schema_mode=os.getenv("POST_FIRST_TOOL_SCHEMA_MODE") or None,
         text_tool_call_mode=os.getenv("TEXT_TOOL_CALL_MODE", "disabled"),
         normalize_shell_commands=os.getenv("NORMALIZE_SHELL_COMMANDS", "0") == "1",
         list_files_preview_chars=parse_nonnegative_int_env("LIST_FILES_PREVIEW_CHARS", 0),
