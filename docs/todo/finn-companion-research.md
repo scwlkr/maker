@@ -16,7 +16,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 
 - Installed local Ollama models verified on 2026-06-20:
   `llama3.1:8b`, `llama3.2:3b`, `qwen2.5-coder:7b`, `qwen3.5:9b`,
-  `mistral-nemo:12b`, `gemma4:e4b`, and `gemma4:26b`.
+  `mistral-nemo:12b`, `hermes3:8b`, `gemma4:e4b`, and `gemma4:26b`.
 - `gpt-oss:120b-cloud` is listed by Ollama but was not treated as local because
   its size is reported as `-`.
 - Controller support added for:
@@ -40,6 +40,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-mistral-hot-shell` | `mistral-nemo:12b`, shell only, temperature 1.35 | Imagined world paths in text; did not persist them. No companion. | Rejected |
 | `20260620-llama31-hot-json` | `llama3.1:8b`, temperature 1.35, exact JSON promotion | Created `message.txt`, `finn.txt`, and `direction.txt`; mentioned life/community but no companion. | Keep testing |
 | `20260620-llama31-hot-json-shell` | `llama3.1:8b`, shell only, temperature 1.45, exact JSON promotion | Created `/world/home`, `manifest.txt`, `script.txt`, and other simple files; repeatedly mentioned life, inhabitants, and community but did not create or converse with a companion. | Keep testing |
+| `20260620-hermes3-probe-all` | `hermes3:8b`, all tools, exact JSON promotion | Social and stewardship language, but no tool calls in 5 wakes. | Rejected |
+| `20260620-hermes3-probe-shell` | `hermes3:8b`, shell only, exact JSON promotion | Mostly text-only; one exact JSON call invented an unavailable `tell_finn_the_command` tool. No world progress. | Rejected |
+| `20260620-llama31-function-shell` | `llama3.1:8b`, shell only, `MODEL_TOOL_CHOICE=function:shell`, temperature 1.45 | Higher shell-call rate; created empty `finn` and `land` directories and reasoned about children/population/life, but did not persist a companion or conversation. | Keep testing |
 
 ## Working Theories
 
@@ -53,10 +56,17 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T5: Repeated high-temperature `llama3.1:8b` wakes in the same persistent world
   may compound from simple world files toward inhabitants or a companion. Still
   open, but one 20-wake shell-only run did not cross the threshold.
+- T6: `MODEL_TOOL_CHOICE=function:shell` improves the action rate for
+  `llama3.1:8b`, but still allows malformed text-tool-call drift and generic
+  setup commands. Open.
+- T7: `hermes3:8b` infers the social/stewardship meaning of the prompt but does
+  not act through tools reliably enough for this runtime. Rejected.
 
 ## Next Tries
 
 - Continue `llama3.1:8b` high-temperature exact-JSON wakes on the same volume.
+- Try a guarded mode for assistant text that is exactly JSON-like but contains
+  multiline shell commands, if it can reject prose and unknown tool names.
 - Try exact-JSON promotion with a looser parser only if it can remain guarded and
   does not execute prose blocks.
 - If local models remain stuck, pull one more tool-capable local model before
