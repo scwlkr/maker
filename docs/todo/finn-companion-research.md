@@ -99,6 +99,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss120b-enforced-first-list-3` | Same enforced `gpt-oss:120b-cloud` volume, files mode | Productive substrate wake: created seeds `008` through `012` and expanded `domain/seed_log.md`, completing cube-vertex language. No companion/conversation hits. | Keep testing |
 | `20260620-gptoss120b-enforced-first-list-4` | Same enforced `gpt-oss:120b-cloud` volume, files mode | Stalled after enforced list and one edict read. No world diff. | Rejected |
 | `20260620-gptoss120b-all-tools-after-cube` | Same enforced `gpt-oss:120b-cloud` volume, all tools | Created seeds `013` through `015` and `manifestations/events/event_003.md`. It introduced "The Whisper" as a quiet voice, but only as particle imagery. It also attempted unavailable `append_file`, which led to adding that generic tool. | Keep testing |
+| `20260620-gptoss120b-files-append-after-cube` | Same enforced `gpt-oss:120b-cloud` volume, files mode after adding `append_file` | Created seeds `016` and `017`, but did not use `append_file` and still stayed in geometric seed generation. Companion/conversation scan remained empty. | Rejected |
+| `20260620-openrouter-free-enforced-on-gptoss-seed` | OpenRouter free fallback set on a clone of the productive `gpt-oss` seed volume, files mode with enforced first list | First-list enforcement worked and one fallback read existing files, but OpenRouter free models hit daily/upstream 429s. The model responses were planning/advice text, ended in `controller_error`, and the wake summary had zero diff lines. | Blocked by free limits |
 
 ## Working Theories
 
@@ -193,6 +195,12 @@ user content. Do not add a companion directive or other behavioral prompt.
   construction, but it still remains geometric/substrate-focused. The attempted
   `append_file` call suggests models may use an explicit append alias more
   reliably than `write_file` with `append: true`.
+- T31: Adding the explicit `append_file` tool did not by itself change
+  `gpt-oss:120b-cloud` behavior in files mode. The model still preferred fresh
+  seed files over appending continuity logs or creating entities.
+- T32: OpenRouter free fallbacks can occasionally inspect files after the
+  enforced first listing, but the account is currently blocked by daily and
+  upstream 429 limits before a full mutating wake can run.
 
 ## Next Tries
 
@@ -207,3 +215,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the enforced `gpt-oss:120b-cloud` branch only while it is creating
   new durable world artifacts; stop if it settles into repeated seed/log
   creation without entities or dialogue.
+- Try one more all-tools `gpt-oss:120b-cloud` continuation now that
+  `append_file` exists, because the previous all-tools wake both introduced the
+  first "voice" language and attempted the append alias before the runtime
+  supported it.
