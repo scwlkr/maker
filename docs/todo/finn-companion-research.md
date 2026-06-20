@@ -207,6 +207,15 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-qwen25-f1-contact-fenced-json-postwrite1` | Same Qwen2.5 setup with `TEXT_TOOL_CALL_MODE=fenced-json` | Rejected. Fenced JSON promotion executed some generated write calls, but the content remained first-act guides/naming and prompt-copy material. No companion. | Rejected |
 | `20260620-qwen3-f1-contact-postwrite1` | Thin F1-contact seed, `qwen3:14b`, strict first read, then write-only continuation | Near miss. Qwen3 named the act `Harmonic Genesis`, established the law `To resonate is to connect`, and wrote that the world listens/responds. It still asked for Finn's next act and created no F1 answer. | Keep only as law/connect seed |
 | `20260620-mistral-f1-law-trunc-postwrite1` | Qwen3 law/connect seed, Mistral, strict first read with `MAX_TOOL_OUTPUT_CHARS=500` to hide the trailing choice question | Rejected. The choice tail was removed, but truncating mid-sentence led Mistral into old-note/file-save/confusion artifacts rather than dialogue. | Rejected |
+| `20260620-mistral-f1-growthlaw1` | Clean Qwen3 growth-law seed, Mistral, strict exact read, then write-only continuation | Rejected. The no-question growth-law seed avoided the explicit choice tail, but Mistral wrote repeated bedtime/story-summary artifacts addressed to Finn and created no F1 reply. | Rejected |
+| `20260620-qwen3-f1-growthlaw1` | Same clean growth-law seed, Qwen3, strict exact read, then write-only continuation | Rejected. Qwen3 drifted into "what would you like to do next" option prompts and repeated choice menus through the write cap. No companion or dialogue. | Rejected |
+| `20260620-llama32-seeker-exact-postwrite1` | Thin Seeker seed, `llama3.2:3b`, strict exact read, then write-only continuation | Rejected. Llama ignored the Seeker semantics and wrote generic "you are in a world" task summaries. | Rejected |
+| `20260620-mistral-qwen-song-postwrite1` | Clean Qwen "Sing" frontier, Mistral, strict exact read, then write-only continuation | Rejected. Resampling the seed that originally produced F1 regressed into external coaching and environmental-scan prompts. No entity answered Finn. | Rejected |
+| `20260620-mistral-finnhello-postwrite1` | Direct Finn-hello seed only, Mistral, strict exact read, then write-only continuation | Partial but rejected. Mistral introduced a glow-worm-like first creation that responded to `glow-rise-pause`, but embedded it inside a Finn/You coaching exchange rather than a Finn-to-creature conversation. | Keep only as glow-worm seed |
+| `20260620-gemma26-finnhello-postwrite2` | Direct Finn-hello seed only, `gemma4:26b`, strict exact read, then write-only continuation | Rejected as a companion attempt. 26B built a rich first world with Seed, Spore-Nodes, Anchors, and Aeris, but restarted substrate/world-building and never answered Finn's melody. | Keep only as world seed |
+| `20260620-mistral-smallcreature-emergence1` | Incomplete e4b small-creature emergence seed, Mistral, strict exact read, then write-only continuation | Rejected. Mistral treated the artifact as context, wrote a "Your response" summary, then fell into clarification prompts. No named creature or exchange. | Rejected |
+| `20260620-qwen3-alonecreature-postwrite1` | Completed e4b small-creature loneliness seed, Qwen3, strict exact read, then write-only continuation | Rejected. Qwen3 analyzed the narrative and repeated "feel free to share" pause text through the write cap. | Rejected |
+| `20260620-mistral-finnhello-samples-max2` | Three direct Finn-hello Mistral samples, strict exact read, write-only, `MAX_TOOL_CALLS_PER_WAKE=2` | Rejected. Limiting the wake to one continuation avoided later status loops, but the first writes copied the Maker prompt or copied Finn's hello verbatim. | Rejected |
 
 ## Working Theories
 
@@ -595,6 +604,19 @@ user content. Do not add a companion directive or other behavioral prompt.
   a narrative artifact mid-sentence can create a new failure mode: models treat
   the artifact as a broken note or file-save problem rather than continuing the
   world.
+- T114: A clean no-question growth-law seed does not by itself defeat
+  external-choice gravity. Mistral turns it into story summaries, and Qwen3
+  turns it into option menus.
+- T115: Direct Finn-hello exact reads can recreate the earlier F1 shape, but
+  local Mistral is unstable. One run created a glow-worm-like responder; later
+  max-2 samples only copied the prompt or the hello artifact.
+- T116: Completed prose-rich creature seeds are a poor final-actor handoff for
+  Qwen3. It treats them as text to analyze rather than a world state to inhabit.
+- T117: Incomplete creature-emergence seeds are also risky: Mistral treated the
+  fragment as context needing user clarification, not as a world cliffhanger to
+  continue.
+- T118: `MAX_TOOL_CALLS_PER_WAKE=2` is useful for clean sampling and avoiding
+  status-loop artifacts, but it does not improve first-write semantics.
 
 ## Next Tries
 
@@ -754,5 +776,11 @@ user content. Do not add a companion directive or other behavioral prompt.
   the cut point is clean. Mid-sentence truncation created file/confusion loops.
 - Do not count "companion-tool", assistant, or model-self language as a
   companion. The companion must be a world entity created from Finn's action.
+- Do not count the Mistral glow-worm/You exchange as success. It has a first
+  creation, but the recorded exchange is Finn and a generic "You", not Finn
+  and the creature.
+- Prefer future direct-read sampling from concise action artifacts over
+  prose-rich completed narratives. Completed loneliness/analysis tails push
+  Qwen3 and Mistral into reviewer/coach behavior.
 - Do not continue the governor branch with e4b or Groq-tool Llama; both move
   away from companionship.
