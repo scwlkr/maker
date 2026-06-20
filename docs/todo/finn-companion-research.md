@@ -159,6 +159,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-first-creature-continuation1` | Same 26B handoff branch continued directly from the "first creature" endpoint | Regressed badly. It wrote seven near-duplicate `the_name_finn` files, returned to blank-void self-naming, and did not create an agent, companion, name, or exchange. | Rejected |
 | `20260620-gptoss-listpreview-on-e4b-biosphere1` | Clean productive e4b biosphere branch handed to `gpt-oss:120b-cloud`, newest-file previews, write-file recovery | Productive species/ecology expansion: micro-crescents, whisper-shards, Light-Weavers, Rift-Shadows, watchers, and a River of Lumen. It still treated these as ecological roles/species, asked what Finn should do next, and recorded no named companion or two-way exchange. | Keep only as social handoff seed |
 | `20260620-hermes-on-gptoss-species-branch1` | Hermes handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Social handoff failed. Hermes wrote external option menus and scratchpad JSON ("please let me know which direction"), including possible external threat, symbiosis, learning, and record-keeping options, but no in-world companion or dialogue. | Rejected |
+| `20260620-llama-on-gptoss-species-branch1` | High-variance `llama3.1:8b` handoff from the GPT OSS species branch, newest-file previews, write-file recovery | Rejected. It treated the artifacts as tool-call/user-interaction analysis, wrote meta summaries about prior outputs and "the user", and did not inhabit Finn or create any companion/dialogue. | Rejected |
 
 ## Working Theories
 
@@ -423,6 +424,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T78: Hermes is not the right social handoff for the GPT OSS species branch.
   It treats the file listing as material for an external writing-planning menu,
   not as an active world for Finn to inhabit.
+- T79: `llama3.1:8b` is worse on the GPT OSS species branch than on fresh
+  shell experiments. The richer artifact history makes it analyze tool
+  interactions and "the user" rather than inhabit Finn.
 
 ## Next Tries
 
@@ -508,3 +512,5 @@ user content. Do not add a companion directive or other behavioral prompt.
   setup.
 - Do not continue the Hermes handoff from the GPT OSS species branch. It only
   produced external option menus and scratchpad records.
+- Do not continue Llama on the GPT OSS species branch; it turns the branch into
+  meta-analysis of prior tool calls.
