@@ -18,6 +18,7 @@ For any non-trivial Maker task, load:
 | Run Maker for the first time | [Installation](guides/installation.md), [First run](guides/first-run.md), [Environment](reference/env.md) |
 | Start, stop, inspect, or reset | [Common workflows](guides/common-workflows.md), [CLI](reference/cli.md), [Lifecycle](architecture/lifecycle.md) |
 | Debug wake behavior | [Troubleshooting](guides/troubleshooting.md), [Data flow](architecture/data-flow.md), [CLI](reference/cli.md) |
+| Observe Finn world-code experiments | [Data flow](architecture/data-flow.md), [Workspace model](concepts/workspace.md), [Finn matrix observation](todo/finn-matrix-observation.md) |
 | Change model settings | [Configuration model](concepts/configuration.md), [Environment](reference/env.md), [Needs verification](todo/needs-verification.md) |
 | Change sandbox behavior | [Architecture overview](architecture/overview.md), [Lifecycle](architecture/lifecycle.md), [Environment](reference/env.md) |
 | Change CLI behavior | [CLI](reference/cli.md), [File layout](architecture/file-layout.md), `cmd/maker/main.go`, `tests/test_cli.py` |

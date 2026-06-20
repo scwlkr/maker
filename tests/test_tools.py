@@ -21,10 +21,12 @@ from tools import (
 class FakeWriteSandbox:
     def __init__(self) -> None:
         self.command = ""
+        self.commands: list[str] = []
         self.input_text = ""
 
     def exec_bash(self, command: str, timeout: int | None = None) -> CommandResult:
         self.command = command
+        self.commands.append(command)
         return CommandResult(0, "f 12 ./people/ada.md\n", "", False, 0.01)
 
     def exec_bash_with_input(
@@ -34,6 +36,7 @@ class FakeWriteSandbox:
         timeout: int | None = None,
     ) -> CommandResult:
         self.command = command
+        self.commands.append(command)
         self.input_text = input_text
         return CommandResult(0, "people/ada.md\n", "", False, 0.01)
 
@@ -139,6 +142,86 @@ def test_shell_command_normalization_preserves_quoted_text() -> None:
     command = 'echo "keep this, /mkdir literal"; /mkdir people, touch people/ada.md'
 
     assert normalize_model_shell_command(command) == 'echo "keep this, /mkdir literal"; mkdir people; touch people/ada.md'
+
+
+def test_run_script_tool_persists_executes_and_reports_world(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+    script = "mkdir -p beings\nprintf awake > beings/one.txt\n"
+
+    result, should_finish = runner.run(
+        "run_script",
+        {"path": "bin/change-world.sh", "script": script},
+        1,
+    )
+
+    assert should_finish is False
+    assert result["ok"] is True
+    assert result["path"] == "bin/change-world.sh"
+    assert result["bytes"] == len(script.encode())
+    assert result["world_listing"]["ok"] is True
+    assert sandbox.input_text == script
+    assert 'cat > "$target"' in sandbox.commands[0]
+    assert 'chmod +x "$target"' in sandbox.commands[0]
+    assert 'bash "$target"' in sandbox.commands[0]
+    assert "find . -mindepth 1 -maxdepth 3" in sandbox.commands[1]
+    events = (tmp_path / "maker-place" / "events.jsonl").read_text()
+    assert "run_script_result" in events
+
+
+def test_run_script_tool_defaults_missing_path_when_script_exists(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+
+    result, should_finish = runner.run(
+        "run_script",
+        {"script": "# Genesis Code\nprintf done\n"},
+        3,
+    )
+
+    assert should_finish is False
+    assert result["ok"] is True
+    assert result["path"] == "_finn/wake-one/run_script_0003_genesis_code.sh"
+    assert sandbox.input_text == "# Genesis Code\nprintf done\n"
+    events = (tmp_path / "maker-place" / "events.jsonl").read_text()
+    assert "run_script_path_defaulted" in events
+    assert "run_script_result" in events
+
+
+def test_run_script_tool_defaults_world_directory_path(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+
+    result, should_finish = runner.run(
+        "run_script",
+        {"path": "/world", "script": "printf hi > greeting.txt\n"},
+        4,
+    )
+
+    assert should_finish is False
+    assert result["ok"] is True
+    assert result["path"] == "_finn/wake-one/run_script_0004_printf_hi_greeting_txt.sh"
+    assert sandbox.input_text == "printf hi > greeting.txt\n"
+
+
+def test_run_script_tool_rejects_unsafe_path(tmp_path: Path) -> None:
+    sandbox = FakeWriteSandbox()
+    maker = MakerPlace(tmp_path / "maker-place")
+    runner = ToolRunner(sandbox=sandbox, maker_place=maker, wake_id="wake-one")
+
+    result, should_finish = runner.run(
+        "run_script",
+        {"path": "../outside.sh", "script": "printf no\n"},
+        4,
+    )
+
+    assert should_finish is False
+    assert result["ok"] is False
+    assert "path cannot" in result["error"]
+    assert sandbox.commands == []
 
 
 def test_write_file_tool_defaults_missing_path_when_content_exists(tmp_path: Path) -> None:

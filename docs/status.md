@@ -13,13 +13,16 @@ This file is the compact source of truth for current Maker behavior.
 - Sandbox command output decoding replaces malformed UTF-8 byte sequences so
   truncated previews cannot crash a wake.
 - Maker Place observation files under `maker-place/`: event log, wake summaries,
-  world snapshots, optional raw tool outputs, controller pid/log, stop file, and
-  wake lock.
+  generated field notes, world snapshots, optional raw tool outputs, controller
+  pid/log, stop file, and wake lock.
 - Wake lock behavior that skips a new wake while another wake is active.
 - Model clients for OpenRouter, Ollama, and a local mock model.
 - Model fallback attempts for the configured provider.
-- Native tool schemas for `shell`, `write_file`, `append_file`, `list_files`,
-  `read_file`, `search`, `fetch`, and `sleep_or_finish`.
+- Native tool schemas for `shell`, `run_script`, `write_file`, `append_file`,
+  `list_files`, `read_file`, `search`, `fetch`, and `sleep_or_finish`.
+- `run_script` writes a persistent Bash script under `/world`, makes it
+  executable, runs it from `/world`, and returns a bounded post-run world
+  listing.
 - `list_files` can optionally include bounded newest-file previews when
   `LIST_FILES_PREVIEW_CHARS` is set.
 - `write_file`/`append_file` calls with content but no path are preserved under
@@ -51,6 +54,9 @@ This file is the compact source of truth for current Maker behavior.
   rendering.
 - Dashboard rendering shows runtime state, the current or latest wake, work
   accomplished, recent wakes, recent events, and colorized terminal output.
+- Each completed wake writes a passive field note under
+  `maker-place/field-notes/` summarizing model/tool behavior, code-capable
+  acts, and the world diff preview without adding messages to Finn's prompt.
 - Pytest coverage for controller units, tool blocking, file-write tools,
   scripts, CLI behavior, and Docker-backed sandbox behavior.
 

@@ -23,6 +23,9 @@
 ## Tool Execution
 
 - `shell`: runs `bash -lc COMMAND` inside the active Docker sandbox at `/world`.
+- `run_script`: writes a Bash script to a relative path under `/world`, makes it
+  executable, runs it from `/world`, and returns the script result plus a
+  bounded post-run world listing.
 - `write_file`: writes UTF-8 text to a relative path under `/world`; if a model
   provides content without a path, the controller preserves it in a per-wake
   `_finn/` fallback file with a semantic filename slug when possible.
@@ -41,6 +44,8 @@
 
 - `maker-place/events.jsonl`: JSONL event stream.
 - `maker-place/wakes/WAKE_ID.json`: wake summary.
+- `maker-place/field-notes/WAKE_ID.md`: passive observer note generated from
+  the wake summary and world diff.
 - `maker-place/world-snapshots/WAKE_ID-before.txt`: before snapshot.
 - `maker-place/world-snapshots/WAKE_ID-after.txt`: after snapshot.
 - `maker-place/raw/WAKE_ID/`: optional raw shell stdout/stderr.

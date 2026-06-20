@@ -541,6 +541,12 @@ class Controller:
             if summary["end_reason"] is None:
                 summary["end_reason"] = "unknown"
             self.maker_place.append_event("wake_end", wake_id, end_reason=summary["end_reason"])
+            try:
+                field_note_path = self.maker_place.write_field_note(wake_id, summary)
+                summary["field_note"] = str(field_note_path)
+            except Exception as exc:
+                summary["errors"].append(f"field note failed: {exc}")
+                self.maker_place.append_event("controller_error", wake_id, error=f"field note failed: {exc}")
             self.maker_place.write_wake_summary(wake_id, summary)
             lock.release()
         return summary
@@ -995,6 +1001,8 @@ def tool_schemas_for_mode(mode: str) -> list[dict[str, Any]]:
         return TOOL_SCHEMAS
     if normalized in {"shell", "shell-only"}:
         return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "shell"]
+    if normalized in {"script", "script-only", "code-only"}:
+        return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "run_script"]
     if normalized in {"write", "write-file", "write-only"}:
         return [schema for schema in TOOL_SCHEMAS if schema.get("function", {}).get("name") == "write_file"]
     if normalized in {"files", "file", "file-only", "world-files"}:
@@ -1004,6 +1012,17 @@ def tool_schemas_for_mode(mode: str) -> list[dict[str, Any]]:
             if isinstance(schema.get("function"), dict)
         }
         return [by_name[name] for name in ["list_files", "read_file", "write_file", "append_file"] if name in by_name]
+    if normalized in {"code", "scripts", "world-code"}:
+        by_name = {
+            schema.get("function", {}).get("name"): schema
+            for schema in TOOL_SCHEMAS
+            if isinstance(schema.get("function"), dict)
+        }
+        return [
+            by_name[name]
+            for name in ["list_files", "read_file", "write_file", "append_file", "run_script"]
+            if name in by_name
+        ]
     raise ValueError(f"unknown TOOL_SCHEMA_MODE: {mode}")
 
 

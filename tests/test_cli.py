@@ -118,7 +118,7 @@ def test_go_cli_status_events_wakes_show_and_evaluate(repo_root: Path, tmp_path:
     evaluate = run_maker(repo_root, [*base, "evaluate", "--wake", wake_id, "--last-responses", "10"])
     assert "required ignored: 1" in evaluate.stdout
     assert "tool calls: 1" in evaluate.stdout
-    assert "evaluation: shell/tool activity observed" in evaluate.stdout
+    assert "evaluation: world-mutating tool activity observed" in evaluate.stdout
 
 
 def test_go_cli_file_stdin_and_output_routing(repo_root: Path, tmp_path: Path) -> None:
@@ -317,4 +317,4 @@ def test_go_cli_doctor_and_probe_cover_ollama(repo_root: Path, tmp_path: Path) -
     assert "tool names: shell" in probe.stdout
     assert requests
     assert requests[0]["messages"][0]["content"].startswith("In the beginning, there was a maker.")
-    assert len(requests[0]["tools"]) == 4
+    assert len(requests[0]["tools"]) == 9

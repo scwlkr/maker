@@ -7,6 +7,7 @@ from pathlib import Path
 from controller import Controller, MockModelClient, Settings
 from maker_place import MakerPlace
 from sandbox import Sandbox, SandboxSettings
+from tools import ToolRunner
 
 
 def docker_settings(repo_root: Path, unique_name: str) -> SandboxSettings:
@@ -85,6 +86,38 @@ def test_shell_timeout(docker_required: None, repo_root: Path, unique_name: str)
         result = sandbox.exec_bash("sleep 5")
         assert result.timed_out is True
         assert result.exit_code is None
+    finally:
+        sandbox.stop()
+        remove_volume(settings.world_volume)
+
+
+def test_run_script_tool_changes_real_world_volume(
+    docker_required: None,
+    repo_root: Path,
+    tmp_path: Path,
+    unique_name: str,
+) -> None:
+    settings = docker_settings(repo_root, unique_name)
+    remove_volume(settings.world_volume)
+    sandbox = Sandbox("run-script", settings)
+    try:
+        sandbox.start()
+        runner = ToolRunner(sandbox, MakerPlace(tmp_path / "maker-place"), "run-script")
+        result, should_finish = runner.run(
+            "run_script",
+            {
+                "path": "bin/change-world.sh",
+                "script": "mkdir -p matrix\nprintf 'awake\\n' > matrix/first-cell.txt\n",
+            },
+            1,
+        )
+
+        assert should_finish is False
+        assert result["ok"] is True
+        assert sandbox.exec_bash("test -x bin/change-world.sh && test -f matrix/first-cell.txt").exit_code == 0
+        snapshot = sandbox.world_snapshot()
+        assert "./bin/change-world.sh" in snapshot
+        assert "./matrix/first-cell.txt" in snapshot
     finally:
         sandbox.stop()
         remove_volume(settings.world_volume)

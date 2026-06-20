@@ -12,8 +12,8 @@ A wake is the core unit of work.
 8. Tool calls are executed by the controller against the sandbox or public web.
 9. The wake ends when `sleep_or_finish`, context exhaustion, repeated text-only
    model responses, controller stop, or controller error occurs.
-10. The controller records an after snapshot, diff summary, wake summary, and
-   wake end event.
+10. The controller records an after snapshot, diff summary, wake end event,
+   passive field note, and wake summary.
 11. The sandbox container is removed, while `/world` and Maker Place persist.
 
 Loop mode repeats this workflow after `WAKE_INTERVAL_SECONDS` unless the stop

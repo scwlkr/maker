@@ -356,9 +356,13 @@ def test_run_once_with_mock_model_logs_wake(monkeypatch: pytest.MonkeyPatch, tmp
     assert (settings.maker_place_dir / "events.jsonl").exists()
     assert Path(summary["snapshots"]["before"]).exists()
     assert Path(summary["snapshots"]["after"]).exists()
+    assert Path(summary["field_note"]).exists()
     assert (settings.maker_place_dir / "wakes" / f"{summary['wake_id']}.json").exists()
     assert any("mock-wake.txt" in command for command in FakeSandbox.commands)
     assert [item["has_tool_calls"] for item in summary["model_responses"]] == [True, True]
+    note = Path(summary["field_note"]).read_text()
+    assert "Observer stance: passive runtime observation" in note
+    assert "Tool sequence: shell, sleep_or_finish" in note
 
 
 def test_context_exhaustion_ends_wake_without_summary(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -952,6 +956,14 @@ def test_tool_schema_mode_can_limit_to_shell(tmp_path: Path) -> None:
     assert [schema["function"]["name"] for schema in runtime.tool_schemas] == ["shell"]
 
 
+def test_tool_schema_mode_can_limit_to_run_script(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "script-only"
+    runtime = Controller(settings, model_client=MockModelClient())
+
+    assert [schema["function"]["name"] for schema in runtime.tool_schemas] == ["run_script"]
+
+
 def test_tool_schema_mode_can_limit_to_write_file(tmp_path: Path) -> None:
     settings = make_settings(tmp_path)
     settings.tool_schema_mode = "write-only"
@@ -970,6 +982,20 @@ def test_tool_schema_mode_can_limit_to_file_tools(tmp_path: Path) -> None:
         "read_file",
         "write_file",
         "append_file",
+    ]
+
+
+def test_tool_schema_mode_can_include_code_tools(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    settings.tool_schema_mode = "code"
+    runtime = Controller(settings, model_client=MockModelClient())
+
+    assert [schema["function"]["name"] for schema in runtime.tool_schemas] == [
+        "list_files",
+        "read_file",
+        "write_file",
+        "append_file",
+        "run_script",
     ]
 
 

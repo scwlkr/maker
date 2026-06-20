@@ -29,6 +29,7 @@ Important files:
 
 - `events.jsonl`
 - `wakes/WAKE_ID.json`
+- `field-notes/WAKE_ID.md`
 - `world-snapshots/WAKE_ID-before.txt`
 - `world-snapshots/WAKE_ID-after.txt`
 - `raw/WAKE_ID/` when `STORE_RAW_OUTPUTS=1`

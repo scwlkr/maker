@@ -2,7 +2,7 @@
 
 Maker is an autonomous sandbox runtime for Finn.
 
-Finn wakes with the maker prompt and four tools. The Python controller stays
+Finn wakes with the maker prompt and native tools. The Python controller stays
 outside the sandbox, starts a disposable Docker container for each wake, mounts
 one persistent Docker named volume at `/world`, records observations in Maker
 Place, then removes the container.
@@ -69,6 +69,7 @@ Maker Place is the local observation directory:
 
 - `maker-place/events.jsonl`
 - `maker-place/wakes/WAKE_ID.json`
+- `maker-place/field-notes/WAKE_ID.md`
 - `maker-place/world-snapshots/WAKE_ID-before.txt`
 - `maker-place/world-snapshots/WAKE_ID-after.txt`
 - `maker-place/raw/WAKE_ID/` when `STORE_RAW_OUTPUTS=1`

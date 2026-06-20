@@ -609,9 +609,9 @@ func cmdEvaluate(cfg Config, args []string, stdin io.Reader, out io.Writer) erro
 	if counts["tool_calls"].(int) == 0 {
 		fmt.Fprintln(out, "evaluation: no tool calls observed")
 	} else if counts["world_mutating_tools"].(int) == 0 {
-		fmt.Fprintln(out, "evaluation: tools observed, no shell calls observed")
+		fmt.Fprintln(out, "evaluation: tools observed, no world-mutating calls observed")
 	} else {
-		fmt.Fprintln(out, "evaluation: shell/tool activity observed")
+		fmt.Fprintln(out, "evaluation: world-mutating tool activity observed")
 	}
 	return nil
 }
@@ -886,9 +886,12 @@ func printDashboardWake(out io.Writer, style dashboardStyle, wake map[string]any
 	assessment := dashboardAssessment(counts, worldChanged, lenArray(wake["errors"]), active)
 	printKeyValue(out, style, "assessment", style.paint(assessmentColor(counts, worldChanged, lenArray(wake["errors"]), active), assessment))
 	printKeyValue(out, style, "responses", fmt.Sprintf("%d model, %d text, %d text-only loops", countInt(counts, "model_responses"), lenArray(wake["text_outputs"]), countInt(counts, "text_only")))
-	printKeyValue(out, style, "tools", fmt.Sprintf("%d total  shell/search/fetch/sleep=%d/%d/%d/%d",
+	printKeyValue(out, style, "tools", fmt.Sprintf("%d total  script/shell/write/append/search/fetch/sleep=%d/%d/%d/%d/%d/%d/%d",
 		lenArray(wake["tool_calls"]),
+		countInt(counts, "run_script"),
 		countInt(counts, "shell"),
+		countInt(counts, "write_file"),
+		countInt(counts, "append_file"),
 		countInt(counts, "search"),
 		countInt(counts, "fetch"),
 		countInt(counts, "sleep_or_finish"),
@@ -916,9 +919,12 @@ func printDashboardActiveWake(out io.Writer, style dashboardStyle, wakeID string
 	printKeyValue(out, style, "duration", durationText(start, ""))
 	printKeyValue(out, style, "assessment", style.paint(activeAssessmentColor(counts), activeWakeAssessment(counts)))
 	printKeyValue(out, style, "responses", fmt.Sprintf("%d model, %d text, %d text-only loops", countInt(counts, "model_responses"), countInt(counts, "model_text"), countInt(counts, "text_only")))
-	printKeyValue(out, style, "tools", fmt.Sprintf("%d total  shell/search/fetch/sleep=%d/%d/%d/%d",
+	printKeyValue(out, style, "tools", fmt.Sprintf("%d total  script/shell/write/append/search/fetch/sleep=%d/%d/%d/%d/%d/%d/%d",
 		countInt(counts, "tool_calls"),
+		countInt(counts, "run_script"),
 		countInt(counts, "shell"),
+		countInt(counts, "write_file"),
+		countInt(counts, "append_file"),
 		countInt(counts, "search"),
 		countInt(counts, "fetch"),
 		countInt(counts, "sleep_or_finish"),
@@ -1277,9 +1283,9 @@ func eventColor(kind string) string {
 	switch kind {
 	case "controller_error":
 		return ansiRed
-	case "tool_call", "shell_result", "search_result", "fetch_result":
+	case "tool_call", "shell_result", "run_script_result", "write_file_result", "append_file_result", "list_files_result", "read_file_result", "search_result", "fetch_result":
 		return ansiCyan
-	case "wake_start", "wake_end", "wake_summary_written":
+	case "wake_start", "wake_end", "wake_summary_written", "field_note_written":
 		return ansiGreen
 	case "model_response", "model_text", "model_text_only":
 		return ansiBlue
@@ -1542,6 +1548,84 @@ func makerToolSchemas() []map[string]any {
 		{
 			"type": "function",
 			"function": map[string]any{
+				"name":        "run_script",
+				"description": "Write a bash script to a relative path under /world, make it executable, and run it from /world. The script source and files it creates under /world persist.",
+				"parameters": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"path":   map[string]any{"type": "string"},
+						"script": map[string]any{"type": "string"},
+					},
+					"required":             []string{"path", "script"},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "write_file",
+				"description": "Write UTF-8 text to a relative path under /world. Parent directories are created. Set append to true to append instead of replace.",
+				"parameters": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"path":    map[string]any{"type": "string"},
+						"content": map[string]any{"type": "string"},
+						"append":  map[string]any{"type": "boolean"},
+					},
+					"required":             []string{"path", "content"},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "append_file",
+				"description": "Append UTF-8 text to a relative path under /world. Parent directories are created.",
+				"parameters": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"path":    map[string]any{"type": "string"},
+						"content": map[string]any{"type": "string"},
+					},
+					"required":             []string{"path", "content"},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "list_files",
+				"description": "List files and directories under /world or a relative directory inside /world.",
+				"parameters": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"path": map[string]any{"type": "string"},
+					},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
+				"name":        "read_file",
+				"description": "Read UTF-8 text from a relative file path under /world. Output is bounded by the tool output limit.",
+				"parameters": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"path": map[string]any{"type": "string"},
+					},
+					"required":             []string{"path"},
+					"additionalProperties": false,
+				},
+			},
+		},
+		{
+			"type": "function",
+			"function": map[string]any{
 				"name":        "search",
 				"description": "Search the public web and return titles, URLs, snippets, and dates when available.",
 				"parameters": map[string]any{
@@ -1783,6 +1867,11 @@ func countForWake(events []Event, wakeID string) map[string]any {
 		"required_ignored":      0,
 		"tool_calls":            0,
 		"shell":                 0,
+		"run_script":            0,
+		"write_file":            0,
+		"append_file":           0,
+		"list_files":            0,
+		"read_file":             0,
 		"search":                0,
 		"fetch":                 0,
 		"sleep_or_finish":       0,
@@ -1812,7 +1901,7 @@ func countForWake(events []Event, wakeID string) map[string]any {
 			if tool != "" {
 				inc(counts, tool)
 			}
-			if tool == "shell" {
+			if tool == "shell" || tool == "run_script" || tool == "write_file" || tool == "append_file" {
 				inc(counts, "world_mutating_tools")
 			}
 		case "wake_skipped_already_running":
@@ -1835,7 +1924,7 @@ func recentResponseEvents(events []Event, wakeID string, limit int) []Event {
 			continue
 		}
 		switch str(event["type"]) {
-		case "model_response", "model_error", "model_text", "model_text_only", "required_tool_choice_ignored", "tool_call", "shell_result", "search_result", "fetch_result":
+		case "model_response", "model_error", "model_text", "model_text_only", "required_tool_choice_ignored", "tool_call", "shell_result", "run_script_result", "write_file_result", "append_file_result", "list_files_result", "read_file_result", "search_result", "fetch_result":
 			selected = append(selected, event)
 		}
 	}
@@ -1866,7 +1955,8 @@ func printCounts(out io.Writer, counts map[string]any) {
 	fmt.Fprintf(out, "text-only: %d\n", counts["text_only"])
 	fmt.Fprintf(out, "required ignored: %d\n", counts["required_ignored"])
 	fmt.Fprintf(out, "tool calls: %d\n", counts["tool_calls"])
-	fmt.Fprintf(out, "shell/search/fetch/sleep: %d/%d/%d/%d\n", counts["shell"], counts["search"], counts["fetch"], counts["sleep_or_finish"])
+	fmt.Fprintf(out, "script/shell/write/append: %d/%d/%d/%d\n", counts["run_script"], counts["shell"], counts["write_file"], counts["append_file"])
+	fmt.Fprintf(out, "search/fetch/sleep: %d/%d/%d\n", counts["search"], counts["fetch"], counts["sleep_or_finish"])
 	fmt.Fprintf(out, "controller errors: %d\n", counts["controller_errors"])
 }
 

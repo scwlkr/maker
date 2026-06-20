@@ -36,6 +36,22 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "run_script",
+            "description": "Write a bash script to a relative path under /world, make it executable, and run it from /world. The script source and files it creates under /world persist.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "script": {"type": "string"},
+                },
+                "required": ["path", "script"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "write_file",
             "description": "Write UTF-8 text to a relative path under /world. Parent directories are created. Set append to true to append instead of replace.",
             "parameters": {
@@ -429,6 +445,15 @@ def normalize_model_shell_command(command: str) -> str:
     return "".join(output)
 
 
+def should_default_run_script_path(value: Any, error: str) -> bool:
+    raw = str(value).strip()
+    if raw in {"", ".", "/world", "/world/"}:
+        return True
+    if raw.endswith("/") and ".." not in PurePosixPath(raw).parts:
+        return True
+    return error in {"path is required", "path must name a file under /world"} and not raw
+
+
 class ToolRunner:
     def __init__(
         self,
@@ -451,6 +476,8 @@ class ToolRunner:
     def run(self, name: str, args: dict[str, Any], call_index: int) -> tuple[dict[str, Any], bool]:
         if name == "shell":
             return self._shell(args, call_index), False
+        if name == "run_script":
+            return self._run_script(args, call_index), False
         if name == "write_file":
             return self._write_file(args, call_index), False
         if name == "append_file":
@@ -499,6 +526,111 @@ class ToolRunner:
             stderr=summary["stderr"],
         )
         return {"ok": result.exit_code == 0 and not result.timed_out, **summary}
+
+    def _run_script(self, args: dict[str, Any], call_index: int) -> dict[str, Any]:
+        script = str(args.get("script", ""))
+        try:
+            path = safe_world_relative_path(args.get("path", ""))
+        except ValueError as exc:
+            if script and should_default_run_script_path(args.get("path", ""), str(exc)):
+                path = default_write_path("run_script", self.wake_id, call_index, script)
+                if path.endswith(".md"):
+                    path = path[:-3] + ".sh"
+                self.maker_place.append_event(
+                    "run_script_path_defaulted",
+                    self.wake_id,
+                    tool="run_script",
+                    path=path,
+                    arguments=args,
+                )
+            else:
+                result = {"ok": False, "error": str(exc)}
+                self.maker_place.append_event(
+                    "tool_call_error",
+                    self.wake_id,
+                    tool="run_script",
+                    arguments=args,
+                    error=result["error"],
+                )
+                return result
+
+        try:
+            safe_world_relative_path(path)
+        except ValueError as exc:
+            result = {"ok": False, "error": str(exc)}
+            self.maker_place.append_event(
+                "tool_call_error",
+                self.wake_id,
+                tool="run_script",
+                arguments=args,
+                error=result["error"],
+            )
+            return result
+
+        command = (
+            f"target={shlex.quote(path)}; "
+            'mkdir -p -- "$(dirname -- "$target")" && '
+            'cat > "$target" && '
+            'chmod +x "$target" && '
+            'bash "$target"'
+        )
+        self.maker_place.append_event(
+            "tool_call",
+            self.wake_id,
+            tool="run_script",
+            path=path,
+            script=summarize_text(script, 1000),
+        )
+        result = self.sandbox.exec_bash_with_input(command, script)
+        summary = result.for_tool(self.max_tool_output_chars)
+        if self.maker_place.store_raw_outputs:
+            raw_name = f"{call_index:04d}-run_script"
+            summary["raw_stdout_path"] = self.maker_place.write_raw_output(
+                self.wake_id,
+                f"{raw_name}.stdout.txt",
+                result.stdout,
+            )
+            summary["raw_stderr_path"] = self.maker_place.write_raw_output(
+                self.wake_id,
+                f"{raw_name}.stderr.txt",
+                result.stderr,
+            )
+        listing = self._world_listing()
+        self.maker_place.append_event(
+            "run_script_result",
+            self.wake_id,
+            path=path,
+            exit_code=result.exit_code,
+            timed_out=result.timed_out,
+            elapsed_seconds=result.elapsed_seconds,
+            stdout=summary["stdout"],
+            stderr=summary["stderr"],
+            world_listing=listing,
+        )
+        return {
+            "ok": result.exit_code == 0 and not result.timed_out,
+            "path": path,
+            "bytes": len(script.encode("utf-8", errors="replace")),
+            "world_listing": listing,
+            **summary,
+        }
+
+    def _world_listing(self) -> dict[str, Any]:
+        command = (
+            'if [ -z "$(find . -mindepth 1 -maxdepth 1 -print -quit)" ]; then exit 0; fi; '
+            'find . -mindepth 1 -maxdepth 3 -printf "%y %s %p\\n" | sort | head -n 200'
+        )
+        result = self.sandbox.exec_bash(command)
+        if result.exit_code != 0 or result.timed_out:
+            detail = result.stderr or result.stdout
+            return {
+                "ok": False,
+                "error": summarize_text(detail, self.max_tool_output_chars),
+            }
+        return {
+            "ok": True,
+            "listing": summarize_text(result.stdout, self.max_tool_output_chars),
+        }
 
     def _write_file(
         self,
