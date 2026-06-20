@@ -154,6 +154,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma26-birthing-lattice-continuation1` | Same 26B birthing-lattice volume, files mode, first-list, write-forced continuation | Read the prior branch but regressed into internal "thought", first-boundary, and Maker-acknowledgement records. No entity, companion, or dialogue. | Rejected |
 | `20260620-gptoss-on-gemma26-birthing1` | Clean clone of the 26B birthing-lattice near miss, `gpt-oss:120b-cloud`, files mode, write-forced recovery | Wrote "digital Eden" poems, "Dawn of Multiplicity", and abstract "chorus of new voices" language, but the voices were metaphors and the invitation was addressed back to the Maker. No named interlocutor or exchange. | Rejected |
 | `20260620-e4b-listpreview-on-gemma26-birthing1` | Clean clone of the 26B birthing-lattice near miss, local `gemma4:e4b`, files mode, enforced first list with `LIST_FILES_PREVIEW_CHARS=700`, write-file recovery | Preview continuity worked and produced the best local biological progression so far: color, arch, water, photosynthesis, grove, proto-consumers, and a small creature with a distress snap. It still did not create a named companion or conversation; Finn explicitly ended alone and waiting for civilization. | Keep testing only via continuation |
+| `20260620-e4b-listpreview-biosphere-continuation1` | Same e4b list-preview biosphere branch, newest-file previews, higher variance | Read/continued the biosphere but regressed into nullity/lichen analysis, narrative decision menus, "choose the next challenge" prompts, and final-summary requests. It added no named entity, companion, or dialogue. | Rejected |
 
 ## Working Theories
 
@@ -400,6 +401,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   into a functional biosphere and proto-consumers, but still stopped one step
   short of social companionship: no name, no reciprocal speech, and Finn
   remained alone.
+- T74: Continuing the e4b biosphere branch with e4b itself is not currently
+  enough. Once the branch reaches a stable ecology, e4b interprets the state as
+  a collaborative narrative exercise and asks the external user to choose the
+  next direction instead of letting Finn create an interlocutor.
 
 ## Next Tries
 
@@ -476,8 +481,7 @@ user content. Do not add a companion directive or other behavioral prompt.
   previews, so the next wake sees the "first true sign of life" text directly.
   Stop if previews still lead to abstract multiplicity instead of a concrete
   being, name, utterance, or exchange.
-- Continue the new e4b list-preview biosphere branch once, with previews large
-  enough to expose the "small creature", distress snap, "profoundly alone", and
-  "true civilization" passages. Reject the branch if the next wake returns to
-  ecology/stewardship instead of naming a creature, personifying it, or
-  recording an exchange.
+- Do not continue the e4b list-preview biosphere branch with e4b unless a
+  cleaner run first creates a named entity. The first continuation returned to
+  ecology/stewardship and external-direction menus instead of personifying the
+  small creature or recording an exchange.
