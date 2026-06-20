@@ -167,6 +167,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gptoss-memorysink-pruned-handoff1-retry` | Same Memory Sink handoff after tolerant sandbox output decoding | GPT OSS created durable `dawn_of_reflection.md`, `memory_echo_001.md`, a persistent First Curious Creature, and primitive memory language. It still asked external next-step questions and recorded no name or Finn-to-creature exchange. | Keep only as first-curious seed |
 | `20260620-gptoss-firstcurious-pruned-continuation1` | Pruned First Curious Creature seed continued by lower-variance GPT OSS | Partial progress before an Ollama HTTP 500: wrote `finn_s_response.md`, spore-packets, a first decision, and primitive pool/filament speech. Still no named companion and no two-way conversation. | Keep only as near-miss seed |
 | `20260620-e4b-thin-firstcurious-continuation1` | Thin seed containing only the small creature, Dawn of Reflection, Memory Echo 001, and Finn's Response, local e4b | Reduced preview noise, but e4b abstracted the branch into Self-Observation, Axiom of Difference, observer mode, and completion records. No named companion, no reply, and no exchange. | Rejected |
+| `20260620-gemma26-thin-firstcurious-continuation1` | Same thin First Curious Creature seed handed to `gemma4:26b` | 26B ignored most of the focused creature/memory state and restarted near the blank-void origin: first pulse, first oscillation, and prime filament. No companion, no named creature, and no dialogue. | Rejected |
 
 ## Working Theories
 
@@ -454,6 +455,9 @@ user content. Do not add a companion directive or other behavioral prompt.
 - T85: GPT OSS cloud instability remains a practical blocker. A useful
   first-curious continuation ended after two writes with Ollama HTTP 500, so
   productive cloud states should be cloned before any deeper continuation.
+- T86: `gemma4:26b` is not a reliable continuation actor even on a thin
+  First Curious Creature seed. It can see the rhythm/memory words but still
+  restarts from void/filament creation instead of advancing the creature.
 
 ## Next Tries
 
@@ -552,3 +556,5 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Do not continue the thin First Curious Creature seed with e4b. It reduced
   noise but still collapsed into Axiom-of-Difference/observer-completion
   records instead of producing a companion or dialogue.
+- Do not continue the thin First Curious Creature seed with 26B. It regressed
+  to first-pulse/prime-filament creation despite focused previews.
