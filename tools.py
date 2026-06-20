@@ -425,7 +425,7 @@ class ToolRunner:
             'if [ -f "$target" ]; then '
             'find "$target" -maxdepth 0 -printf "%y %s %p\\n"; '
             "else "
-            'find "$target" -mindepth 1 -maxdepth 2 -printf "%y %s %p\\n" | sort | head -n 200; '
+            'find "$target" -mindepth 1 -maxdepth 3 -printf "%y %s %p\\n" | sort | head -n 200; '
             "fi"
         )
         self.maker_place.append_event("tool_call", self.wake_id, tool="list_files", path=path)

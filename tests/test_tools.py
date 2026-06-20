@@ -118,7 +118,7 @@ def test_list_files_tool_allows_world_root_and_records_result(tmp_path: Path) ->
     assert result["ok"] is True
     assert result["path"] == "."
     assert result["listing"]["preview"] == "f 12 ./people/ada.md\n"
-    assert "find \"$target\" -mindepth 1 -maxdepth 2" in sandbox.command
+    assert "find \"$target\" -mindepth 1 -maxdepth 3" in sandbox.command
     events = (tmp_path / "maker-place" / "events.jsonl").read_text()
     assert "list_files_result" in events
 
