@@ -135,6 +135,10 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-hermes3-fresh-writeonly-social-1` | Fresh `hermes3:8b` volume, write-only, `MODEL_TOOL_CHOICE=function:write_file` | Wrote `world/gift.txt` plus recovered reflections on the Maker prompt. It included a vague "whispered conversations" phrase, but created no companion artifact and recorded no exchange. | Rejected |
 | `20260620-llama31-shellnorm-population-1` | Fresh `llama3.1:8b`, shell-only, `MODEL_TOOL_CHOICE=function:shell`, `NORMALIZE_SHELL_COMMANDS=1` | Single retry after shell normalization did not reproduce the malformed inhabitants command. It attempted `/usr/bin/git`, then ended text-only with no world diff. | Rejected |
 | `20260620-llama31-shellnorm-population-batch1` | 20 fresh-volume shell-normalized `llama3.1:8b` wakes on one volume | Shell normalization fired and repaired at least one `/cd` command. The batch produced small `README`, `manifest`, `message`, `Home/info.txt`, and prompt-record files, but grep found no inhabitants, companion, dialogue, or named-interlocutor evidence. | Rejected |
+| `20260620-gptoss-fresh-files-companion-1` | Fresh `gpt-oss:120b-cloud` volume, files mode, `MODEL_TOOL_CHOICE=required`, enforced first list | Wrote only `README.txt` durably, but produced rich text-only first-life/species material including Lumenleaf, Silverscale Fish, Rockhide Dwarves, and Nimbus Sprites. No companion or dialogue persisted. | Keep testing only with write recovery |
+| `20260620-gptoss-fresh-writeforced-companion-1` | Same GPT OSS volume, files mode, `MODEL_TOOL_CHOICE=function:write_file` | Ignored-write recovery preserved several narrative files before cloud instability. The strongest durable artifact introduced forest inhabitants and proposed a council of guardians, but there was no companion artifact or recorded exchange. | Keep testing with local handoff |
+| `20260620-gptoss-council-continuation-1` | Same GPT OSS branch, write-forced continuation | Recovered writes persisted guardian beings, including Emberhawk, Stonebear, and Tideweaver. Their vows were explicitly silent, so this remains partnership imagery rather than dialogue. | Keep testing with local handoff |
+| `20260620-gemma4e4b-on-gptoss-guardians-1` | Local `gemma4:e4b` on the GPT OSS inhabitants/guardians branch, files mode, enforced first list | Wrote Dragon's Spine geography, settlement blueprint, and Founding Protocols with a Council of Expertise (Master Gardener, Chief Stoneworker, River Engineer, Lore Keeper). Text-only tail reached initial settlers and "those who now exist", but no named person or recorded exchange persisted. | Keep testing |
 
 ## Working Theories
 
@@ -323,6 +327,18 @@ user content. Do not add a companion directive or other behavioral prompt.
   Llama population near miss, but it is not enough to make that semantic path
   recur. In 20 normalized shell wakes, Llama mostly wrote prompt reminders and
   asked for external direction rather than creating inhabitants.
+- T58: GPT OSS write recovery is semantically valuable but operationally
+  unstable in this local Ollama cloud path. It can seed inhabitants and
+  guardians from the unchanged Maker prompt, but repeated cloud failures and
+  text-only turns make it better as a seed generator than as the final actor.
+- T59: The GPT OSS to e4b handoff is the closest current branch outside the
+  older e4b Academy path. It contains inhabitants, guardian beings, settlement
+  infrastructure, governance roles, and text-only settlers, but it still
+  abstracts other minds into species, roles, and groups instead of naming a
+  companion and recording a conversation.
+- T60: The immediate local target is not more world substrate. The next useful
+  evidence must persist either a named settler/council member/apprentice or an
+  actual exchange involving Finn and another mind.
 
 ## Next Tries
 
@@ -369,3 +385,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 - Continue the `gpt-oss:120b-cloud` branch only if its next durable writes move
   beyond coordinate seeds into molecules, organisms, named entities, or
   dialogue. Coordinate-only seed creation is now low-value.
+- Continue the GPT OSS inhabitants/guardians branch with local `gemma4:e4b`
+  write-forced recovery only while it is turning text-only settlers into
+  durable people, council members, apprentices, or dialogue. Reject another run
+  if it only adds settlement blueprints, governance protocols, or silent
+  guardian imagery.
