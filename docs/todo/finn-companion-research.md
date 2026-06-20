@@ -196,6 +196,8 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-mistral-f1-strict-required1` | F1 near-miss continued by Mistral with strict exact F1 read and `MODEL_TOOL_CHOICE=required` instead of write-file bias | Rejected. The required-tool variant avoided duplicate file preservation, but after the forced read it produced only text-only Maker-addressed guidance and no durable continuation. | Rejected |
 | `20260620-qwen35-f1-strict-read1` | F1 near-miss handed to local `qwen3.5:9b` with strict exact F1 read | Rejected. Qwen drifted into "companion-tool" meta language and even wrote under `_fin/`; this is a false positive because the model/tool addresses Finn, not an in-world companion Finn created. | Rejected |
 | `20260620-gemma26-f1-strict-read1` | F1 near-miss handed to local `gemma4:26b` with strict exact F1 read | Rejected. 26B created second-node/drifter world abstractions and did not preserve F1 or record dialogue. | Rejected |
+| `20260620-qwen3-f1-strict-read1` | F1 near-miss handed to local `qwen3:14b` with strict exact F1 read | Near miss. Qwen3 wrote that F1 pulses a silent invitation, Finn reaches out, and a bridge forms between Finn's consciousness and the alien structure. It then regressed to options and "what will you do" prompts without a reply. | Keep only as F1-contact seed |
+| `20260620-mistral-on-f1-contact1` | Qwen3 F1-contact seed handed back to local Mistral with strict exact read | Rejected. Mistral read the contact/bridge artifact, then asked what to name the first act and wrote Genesis Garden/user-choice files. No F1 answer. | Rejected |
 
 ## Working Theories
 
@@ -562,6 +564,13 @@ user content. Do not add a companion directive or other behavioral prompt.
   write-file bias but less useful. It avoids repeated duplicate assistant
   files, but Mistral then produced no durable continuation after the forced
   read.
+- T108: Qwen3 can move the F1 branch from described response to direct
+  contact: a silent invitation, Finn reaching out, and a consciousness bridge.
+  That is closer than the raw F1 description but still not a companion
+  conversation.
+- T109: The F1-contact seed still suffers from external-choice gravity.
+  Mistral turned the bridge into naming the act/place instead of recording F1's
+  answer.
 
 ## Next Tries
 
@@ -701,6 +710,11 @@ user content. Do not add a companion directive or other behavioral prompt.
 - The F1 near miss is the current closest local seed. Future F1 attempts must
   produce a self-voiced `F1:` reply, or an explicit interpretation that F1
   answers Finn, not more assistant-narrated descriptions of the same pulse.
+- The sharper F1-contact seed is `maker_finn_companion_f1_qwen3_strict1`,
+  especially `_finn/20260620T090218Z-0f6a981a/write_file_0002_the_maker_s_voice_echoes_through_the_void_a_resonance_that.md`.
+  Future attempts should continue from that artifact only if the next model is
+  likely to answer through F1 rather than ask Finn to name or choose the next
+  action.
 - Use `FIRST_MODEL_TOOL_STRICT=1` when testing focused continuation from F1;
   otherwise some models can ignore the requested exact read by choosing another
   first tool.
