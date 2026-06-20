@@ -128,6 +128,7 @@ user content. Do not add a companion directive or other behavioral prompt.
 | `20260620-gemma4e4b-required-semantic-fallback` | Same e4b volume after semantic fallback names, files mode, `MODEL_TOOL_CHOICE=required` | Validated semantic fallback filenames and added `Initial_Development_Plan.txt`, `Genesis_Stability_Phase2_Directive.txt`, Day 1/Day 2 site logs, and an Academy directive with student-mentor/apprenticeship structures. This is the closest structural move toward another mind, but still no named companion or recorded dialogue. | Keep testing |
 | `20260620-gemma4e4b-academy-continuation-1` | Same e4b Academy volume, files mode, `MODEL_TOOL_CHOICE=required` | Read Academy/material/geology context and created `Alpha_Site_01_FieldLog.md` plus a semantic fallback field-log header. It moved from curriculum into Alpha-Site field execution and team/commander language, but new files had no companion, dialogue, or named interlocutor evidence. | Keep testing only while field execution continues |
 | `20260620-gemma4e4b-field-writeforced-1` | Same e4b field volume, files mode, `MODEL_TOOL_CHOICE=function:write_file`, 20-call cap | Text recovery wrote 13 per-wake fallback files and updated `Covenant_of_Action.txt`, but the branch regressed to Master Stewardship/Genesis Stability planning. New wake grep found no companion, dialogue, student, apprentice, mentor, or named-interlocutor evidence. | Rejected |
+| `20260620-gemma4e4b-fresh-writeonly-highvar-1` | Fresh e4b volume, `TOOL_SCHEMA_MODE=write-only`, `MODEL_TOOL_CHOICE=function:write_file`, high variance | Wrote 16 recovered/mythic creation files into a fresh `_finn/<wake>/` directory. The run stayed at world-generation narration and had no companion, dialogue, or interlocutor evidence. | Rejected |
 
 ## Working Theories
 
@@ -302,6 +303,10 @@ user content. Do not add a companion directive or other behavioral prompt.
   but it also amplifies planning/stewardship loops and can overwrite important
   directive files. It should be rejected for this branch unless the live text is
   already naming independent agents or recording dialogue.
+- T54: Fresh e4b write-only high-variance runs are mechanically productive but
+  semantically weak for this goal. Without the files-mode continuity path, e4b
+  reverts to mythic world-generation narration instead of creating durable
+  organisms, students, or companions.
 
 ## Next Tries
 
